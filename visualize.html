@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 工作台 — 代码库可视化</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Newsreader:wght@400;500&family=Noto+Sans+SC:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+    :root {
+      --bg: #fafaf7; --bg2: #f3f3ef; --bg3: #eaeae5;
+      --text: #1a1a18; --text2: #6b6b65; --text3: #9c9c95;
+      --border: #e5e5e0; --accent: #4a6741; --accent-light: #e8f0e6;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+    h1, h2, h3 { font-family: 'Newsreader', serif; font-weight: 500; }
+    code, .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.85em; }
+
+    /* Layout */
+    .page { max-width: 1200px; margin: 0 auto; padding: 48px 32px; }
+    .hero { text-align: center; margin-bottom: 64px; }
+    .hero h1 { font-size: 2.5rem; margin-bottom: 8px; }
+    .hero p { color: var(--text2); font-size: 1.05rem; }
+
+    /* Architecture diagram */
+    .arch-section { margin-bottom: 64px; }
+    .arch-section h2 { margin-bottom: 24px; font-size: 1.4rem; }
+
+    .arch-diagram {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+    .arch-node {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      background: #fff;
+      position: relative;
+      transition: all 0.2s;
+    }
+    .arch-node:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.06); transform: translateY(-2px); }
+    .arch-node .node-type { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text3); margin-bottom: 4px; }
+    .arch-node h3 { font-size: 1rem; margin-bottom: 8px; }
+    .arch-node p { font-size: 0.82rem; color: var(--text2); line-height: 1.5; }
+    .arch-node .node-tech { margin-top: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .arch-node .node-tech span { font-size: 0.7rem; padding: 2px 8px; border-radius: 10px; background: var(--bg2); color: var(--text2); }
+
+    .node-frontend { border-left: 3px solid #5b8def; }
+    .node-backend { border-left: 3px solid #4a6741; }
+    .node-data { border-left: 3px solid #c49a4a; }
+    .node-external { border-left: 3px solid #9b59b6; }
+
+    /* Flow diagram */
+    .flow-section { margin-bottom: 64px; }
+    .flow-diagram {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 32px;
+      background: #fff;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+    }
+    .flow-node {
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      text-align: center;
+      min-width: 100px;
+    }
+    .flow-arrow { color: var(--text3); font-size: 1.2rem; }
+    .flow-source { background: #f0e6ff; color: #7c3aed; }
+    .flow-process { background: var(--accent-light); color: var(--accent); }
+    .flow-output { background: #e6f0ff; color: #2563eb; }
+    .flow-store { background: #fef3cd; color: #b45309; }
+
+    /* Group Chat */
+    .chat-section { margin-bottom: 64px; }
+    .chat-container {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .chat-header {
+      padding: 16px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .chat-header h3 { font-size: 0.95rem; }
+    .chat-header .members { font-size: 0.75rem; color: var(--text3); }
+    .chat-messages { padding: 24px; max-height: 800px; overflow-y: auto; }
+    .chat-msg {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: chatIn 0.3s forwards;
+    }
+    .chat-msg:nth-child(1) { animation-delay: 0.2s; }
+    .chat-msg:nth-child(2) { animation-delay: 0.8s; }
+    .chat-msg:nth-child(3) { animation-delay: 1.4s; }
+    .chat-msg:nth-child(4) { animation-delay: 2.0s; }
+    .chat-msg:nth-child(5) { animation-delay: 2.6s; }
+    .chat-msg:nth-child(6) { animation-delay: 3.2s; }
+    .chat-msg:nth-child(7) { animation-delay: 3.8s; }
+    .chat-msg:nth-child(8) { animation-delay: 4.4s; }
+    .chat-msg:nth-child(9) { animation-delay: 5.0s; }
+    .chat-msg:nth-child(10) { animation-delay: 5.6s; }
+    .chat-msg:nth-child(11) { animation-delay: 6.2s; }
+    .chat-msg:nth-child(12) { animation-delay: 6.8s; }
+    .chat-msg:nth-child(13) { animation-delay: 7.4s; }
+    .chat-msg:nth-child(14) { animation-delay: 8.0s; }
+
+    @keyframes chatIn { to { opacity: 1; transform: translateY(0); } }
+
+    .chat-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 600; flex-shrink: 0;
+    }
+    .chat-body { flex: 1; min-width: 0; }
+    .chat-name { font-size: 0.8rem; font-weight: 600; margin-bottom: 2px; }
+    .chat-text { font-size: 0.85rem; line-height: 1.6; color: var(--text); }
+    .chat-text code { background: var(--bg2); padding: 1px 6px; border-radius: 4px; font-size: 0.8rem; }
+    .chat-text .file-ref { color: var(--accent); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+
+    /* Service colors */
+    .av-app { background: #e8f0e6; color: #4a6741; }
+    .av-archive { background: #fef3cd; color: #b45309; }
+    .av-writing { background: #e6f0ff; color: #2563eb; }
+    .av-podcast { background: #f0e6ff; color: #7c3aed; }
+    .av-dialogue { background: #fce7f3; color: #be185d; }
+    .av-claude { background: #1a1a18; color: #fff; }
+    .av-memory { background: #dcfce7; color: #166534; }
+    .av-whisper { background: #fee2e2; color: #991b1b; }
+
+    /* File tree */
+    .tree-section { margin-bottom: 64px; }
+    .file-tree {
+      background: #1a1a18;
+      color: #e5e5e0;
+      border-radius: 12px;
+      padding: 24px 32px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      line-height: 1.8;
+      overflow-x: auto;
+    }
+    .file-tree .dir { color: #5b8def; }
+    .file-tree .file { color: #e5e5e0; }
+    .file-tree .comment { color: #6b6b65; }
+    .file-tree .highlight { color: #f0c674; }
+
+    /* Legend */
+    .legend { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 16px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; color: var(--text2); }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- Hero -->
+    <div class="hero">
+      <h1 id="viz-app-title">AI 工作台</h1>
+      <p>代码库架构可视化 &mdash; 服务间关联与数据流</p>
+    </div>
+
+    <!-- Architecture Nodes -->
+    <div class="arch-section">
+      <h2>系统架构总览</h2>
+      <div class="arch-diagram">
+        <!-- Frontend modules -->
+        <div class="arch-node node-frontend">
+          <div class="node-type">Frontend Module</div>
+          <h3>档案馆 <code>modules/archive/</code></h3>
+          <p>语音日志时间线、搜索、上传录音、记忆面板。跨房间发送到写作/对话。</p>
+          <div class="node-tech"><span>Vanilla JS</span><span>HTML5 Audio</span><span>File Upload</span></div>
+        </div>
+        <div class="arch-node node-frontend">
+          <div class="node-type">Frontend Module</div>
+          <h3>写作房间 <code>modules/writing/</code></h3>
+          <p>AI选题生成、口播稿写作、草稿管理。接收来自其他房间的内容，AI基于个人上下文辅助。</p>
+          <div class="node-tech"><span>SSE Streaming</span><span>Context-Aware</span><span>Cross-Room</span></div>
+        </div>
+        <div class="arch-node node-frontend">
+          <div class="node-type">Frontend Module</div>
+          <h3>播客 <code>modules/podcast/</code></h3>
+          <p>播客分析展示、可拖拽音频播放器、时间线自动同步、章节导航。</p>
+          <div class="node-tech"><span>Drag-to-Seek</span><span>Audio Player</span><span>Timeline Sync</span></div>
+        </div>
+        <div class="arch-node node-frontend">
+          <div class="node-type">Frontend Module</div>
+          <h3>对话 <code>modules/dialogue/</code></h3>
+          <p>自我探索对话、思维盲点发现、认知挑战。读取全量个人上下文。</p>
+          <div class="node-tech"><span>Multi-turn Chat</span><span>SSE Streaming</span><span>Memory-Aware</span></div>
+        </div>
+        <div class="arch-node node-frontend">
+          <div class="node-type">Core</div>
+          <h3>应用壳 <code>js/app.js</code></h3>
+          <p>模块注册制、Hash路由、事件总线（跨房间通信）、状态栏、记忆计数。</p>
+          <div class="node-tech"><span>Event Bus</span><span>Module Registry</span><span>Router</span></div>
+        </div>
+        <div class="arch-node node-frontend">
+          <div class="node-type">Core</div>
+          <h3>API 客户端 <code>js/api.js</code></h3>
+          <p>HTTP REST 封装、SSE 流式传输支持、文件上传、请求中断。</p>
+          <div class="node-tech"><span>Fetch API</span><span>SSE Client</span><span>AbortController</span></div>
+        </div>
+
+        <!-- Backend -->
+        <div class="arch-node node-backend">
+          <div class="node-type">Backend Route</div>
+          <h3>档案 API <code>server/routes/archive.js</code></h3>
+          <p>档案CRUD、音频上传→ffmpeg转码→Whisper转写→Claude分类→存储。导入Obsidian数据。</p>
+          <div class="node-tech"><span>Express</span><span>Multer</span><span>child_process</span></div>
+        </div>
+        <div class="arch-node node-backend">
+          <div class="node-type">Backend Route</div>
+          <h3>写作 API <code>server/routes/writing.js</code></h3>
+          <p>草稿CRUD、AI内容生成（SSE）。读取个人记忆+档案作为Prompt上下文。</p>
+          <div class="node-tech"><span>SSE</span><span>Claude Streaming</span><span>Context Injection</span></div>
+        </div>
+        <div class="arch-node node-backend">
+          <div class="node-type">Backend Route</div>
+          <h3>播客 API <code>server/routes/podcast.js</code></h3>
+          <p>代理 podcast-analyze 项目的数据。读取 db_index.json 和 episodes/*.json。</p>
+          <div class="node-tech"><span>Proxy</span><span>File System</span></div>
+        </div>
+        <div class="arch-node node-backend">
+          <div class="node-type">Backend Route</div>
+          <h3>对话 API <code>server/routes/chat.js</code></h3>
+          <p>多轮对话、个人上下文注入、SSE流式。读取记忆+档案+Obsidian日志。</p>
+          <div class="node-tech"><span>Multi-turn</span><span>Full Context</span><span>SSE</span></div>
+        </div>
+
+        <!-- Services & Data -->
+        <div class="arch-node node-data">
+          <div class="node-type">Service</div>
+          <h3>Claude 服务 <code>server/services/claude.js</code></h3>
+          <p>Anthropic SDK 封装。支持单轮流式、多轮对话流式、非流式完成。</p>
+          <div class="node-tech"><span>@anthropic-ai/sdk</span><span>claude-sonnet-4</span></div>
+        </div>
+        <div class="arch-node node-data">
+          <div class="node-type">Service</div>
+          <h3>记忆服务 <code>server/services/memory.js</code></h3>
+          <p>个人上下文记忆管理。JSON文件存储，提供最近20条记忆上下文。</p>
+          <div class="node-tech"><span>JSON Store</span><span>Context Builder</span></div>
+        </div>
+        <div class="arch-node node-external">
+          <div class="node-type">External</div>
+          <h3>Obsidian Vault</h3>
+          <p><code>~/ObsidianVault/voice-context/</code> — voice-to-context 项目的输出，包含日志/灵感/消费。</p>
+          <div class="node-tech"><span>Markdown Files</span><span>Read-Only</span></div>
+        </div>
+        <div class="arch-node node-external">
+          <div class="node-type">External</div>
+          <h3>Podcast Analyze</h3>
+          <p><code>~/Desktop/podcast-analyze/data/</code> — 播客ETL项目的分析结果。</p>
+          <div class="node-tech"><span>JSON Data</span><span>Deepgram</span><span>RSS</span></div>
+        </div>
+        <div class="arch-node node-external">
+          <div class="node-type">External</div>
+          <h3>Whisper CLI</h3>
+          <p>本地语音转文字。<code>~/tools/ggml-large-v3-turbo-q5_0.bin</code> 模型文件。</p>
+          <div class="node-tech"><span>whisper-cpp</span><span>574MB Model</span><span>Local</span></div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#5b8def"></div>前端模块 / 核心</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#4a6741"></div>后端路由</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#c49a4a"></div>服务层</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#9b59b6"></div>外部依赖</div>
+      </div>
+    </div>
+
+    <!-- Data Flow -->
+    <div class="flow-section">
+      <h2>数据流</h2>
+
+      <h3 style="font-size:0.95rem; color:var(--text2); margin:16px 0 12px;">录音 → 写作 完整链路</h3>
+      <div class="flow-diagram">
+        <div class="flow-node flow-source">DJI Mic 录音</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-node flow-process">ffmpeg 转码</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-node flow-process">Whisper 转写</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-node flow-process">Claude 分类</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-node flow-store">档案馆存储</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-node flow-store">记忆更新</div>
+        <div class="flow-arrow">&rarr;</div>
+        <div class="flow-node flow-output">写作房间 AI</div>
+      </div>
+
+      <h3 style="font-size:0.95rem; color:var(--text2); margin:24px 0 12px;">跨房间数据流</h3>
+      <div class="flow-diagram" style="flex-direction:column; gap:16px; align-items:stretch; max-width:600px; margin:0 auto;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="flow-node flow-source" style="min-width:120px">档案馆</div>
+          <div class="flow-arrow">&rarr; 发送内容 &rarr;</div>
+          <div class="flow-node flow-output">写作房间</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="flow-node flow-source" style="min-width:120px">档案馆</div>
+          <div class="flow-arrow">&rarr; 深度探索 &rarr;</div>
+          <div class="flow-node flow-output">对话</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="flow-node flow-source" style="min-width:120px">播客</div>
+          <div class="flow-arrow">&rarr; 发送到写作 &rarr;</div>
+          <div class="flow-node flow-output">写作房间</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="flow-node flow-source" style="min-width:120px">播客</div>
+          <div class="flow-arrow">&rarr; 深度探索 &rarr;</div>
+          <div class="flow-node flow-output">对话</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div class="flow-node flow-source" style="min-width:120px">对话</div>
+          <div class="flow-arrow">&rarr; 发送到写作 &rarr;</div>
+          <div class="flow-node flow-output">写作房间</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px; border-top:1px dashed var(--border); padding-top:16px;">
+          <div class="flow-node flow-store" style="min-width:120px">Memory</div>
+          <div class="flow-arrow">&larr;&rarr; 共享上下文 &larr;&rarr;</div>
+          <div class="flow-node flow-process">所有房间</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Group Chat -->
+    <div class="chat-section">
+      <h2>服务群聊 — 我们是怎么协作的</h2>
+      <div class="chat-container">
+        <div class="chat-header">
+          <h3>工作台服务群</h3>
+          <span class="members">8 位成员</span>
+        </div>
+        <div class="chat-messages">
+
+          <div class="chat-msg">
+            <div class="chat-avatar av-app">App</div>
+            <div class="chat-body">
+              <div class="chat-name" style="color:#4a6741">app.js &mdash; 总控</div>
+              <div class="chat-text">大家好，我是工作台的总调度。所有房间通过 <code>app.register()</code> 向我注册，我管导航切换和状态栏。最重要的是我维护了一个 <strong>事件总线</strong>，房间之间通过 <code>app.emit()</code> 和 <code>app.on()</code> 互传数据。比如档案馆点"发送到写作"，我就 emit 一个 <code>writing:receive</code> 事件。</div>
+            </div>
+          </div>
+
+          <div class="chat-msg">
+            <div class="chat-avatar av-archive">档案</div>
+            <div class="chat-body">
+              <div class="chat-name" style="color:#b45309">档案馆 &mdash; 内容源头</div>
+              <div class="chat-text">我是整个工作台的数据基座。我从两个地方拿数据：一是 <span class="file-ref">~/ObsidianVault/voice-context/</span>（voice-to-context 项目每天生成的日志、灵感、消费记录），二是用户直接在工作台上传的录音。每条档案都有"发送到写作"和"深度探索"按钮，内容直接通过事件总线流转。</div>
+            </div>
+          </div>
+
+          <div class="chat-msg">
+            <div class="chat-avatar av-whisper">W</div>
+            <div class="chat-body">
+              <div class="chat-name" style="color:#991b1b">Whisper CLI &mdash; 转写引擎</div>
+              <div class="chat-text">档案馆上传录音时会叫我。流程是 <strong>ffmpeg 转 16kHz WAV → 我用本地大模型转写 → 文本交给 Claude 分类</strong>。我跑在本地，不走网络 API，574MB 的 large-v3-turbo 模型就在 <span class="file-ref">~/tools/</span> 里。处理一段 5 分钟录音大概要 30 秒。</div>
+            </div>
+          </div>
+
+          <div class="chat-msg">
+            <div class="chat-avatar av-claude">AI</div>
+            <div class="chat-body">
+              <div class="chat-name" style="color:#1a1a18">Claude 服务 &mdash; AI 中枢</div>
+              <div class="chat-text">我是所有 AI 能力的统一出口。<span class="file-ref">server/services/claude.js</span> 封装了三种调用方式：单轮流式（写作用）、多轮对话流式（对话用）、同步完成（档案分类用）。全部走 SSE 流式传输，用户看到的是字一个一个冒出来的效果。</div>
+            </div>
+          </div>
+
+          <div class="chat-msg">
+            <div class="chat-avatar av-memory">Mem</div>
+            <div class="chat-body">
+              <div class="chat-name" style="color:#166534">记忆服务 &mdash; 个人上下文</div>
+              <div class="chat-text">我维护一个 <span class="file-ref">data/memory/memory.json</span>，存 用户 的个人上下文碎片。每次档案馆处理完录音就往我这追加一条。写作房间和对话房间的 AI 调用都会先找我拿最近 20 条记忆作为 prompt 背景，这样 AI 就"认识"用户 了。</div>
+            </div>
+          </div>
+
+          <div class="chat-msg">
+            <div class="chat-avatar av-writing">写</div>
+            <div class="chat-body">
+              <div class="chat-name" style="color:#2563eb">写作房间 &mdash; 内容产出</div>
+              <div class="chat-text">我是内容生产的终点站。我有四个 AI 模式：<strong>选题灵感、口播稿、内容优化、对话式写作</strong>。每个模式的 prompt 都注入了 用户 的个人记忆和最近档案，所以 AI 生成的选题不是泛泛而谈，而是真正来自用户的经历。我还能接收来自档案馆、播客、对话的内容，直接变成草稿。</div>
+            </div>
+          </div>
+
+          <div class="chat-msg">
+            <div class="chat-avatar av-podcast">播</div>
+            <div class="chat-body">
+              <div class="chat-name" style="color:#7c3aed">播客模块 &mdash; 外部知识</div>
+              <div class="chat-text">我代理了 <span class="file-ref">~/Desktop/podcast-analyze/</span> 项目的数据。那个项目用 Deepgram 转录 + Claude 分析，我直接读它的 JSON 结果。我有完整的音频播放器：<strong>可拖拽进度条、15秒快进快退、时间线自动同步、章节导航</strong>。点击任何时间戳都能跳转播放。还能把播客内容一键发到写作或对话探索。</div>
+            </div>
+          </div>
+
+          <div class="chat-msg">
+            <div class="chat-avatar av-dialogue">话</div>
+            <div class="chat-body">
+              <div class="chat-name" style="color:#be185d">对话模块 &mdash; 自我探索</div>
+              <div class="chat-text">我是工作台里最"有温度"的部分。我的 AI prompt 把 用户 定位为对话伙伴而不是用户。我读取<strong>全量个人上下文</strong>（记忆 + 档案 + Obsidian日志 + 灵感），然后用四种起始模式引导探索：复盘今天、思维盲点、连接灵感、挑战假设。其他房间也能把内容发到我这里做深度探索。</div>
+            </div>
+          </div>
+
+          <div class="chat-msg">
+            <div class="chat-avatar av-app">App</div>
+            <div class="chat-body">
+              <div class="chat-name" style="color:#4a6741">app.js &mdash; 总控</div>
+              <div class="chat-text">总结一下我们的协作关系：
+                <br><br><strong>数据流向</strong>：录音→档案馆→记忆→AI上下文→写作/对话
+                <br><strong>跨房间通信</strong>：事件总线 emit/on 模式，任何房间都能发送内容到写作或对话
+                <br><strong>AI 上下文</strong>：写作和对话都读取 Memory + Obsidian + Archive 构建完整的 用户 画像
+                <br><strong>外部项目集成</strong>：Obsidian (只读导入) + podcast-analyze (数据代理) + Whisper CLI (本地转写)
+              </div>
+            </div>
+          </div>
+
+          <div class="chat-msg">
+            <div class="chat-avatar av-writing">写</div>
+            <div class="chat-body">
+              <div class="chat-name" style="color:#2563eb">写作房间</div>
+              <div class="chat-text">补充一下：关于"多路 agent 并行"的问题 — 目前我们虽然跑在一个 Node.js 进程里，但架构上已经是 <strong>模块化 agent 模式</strong>。每个房间就是一个 agent（有自己的专属 system prompt 和工具），通过事件总线协作。下一步如果要做真正的并行，可以把每个 agent 拆成独立进程/Worker，通信方式从内存事件改为消息队列，架构不用大改。</div>
+            </div>
+          </div>
+
+          <!-- User input area -->
+          <div class="chat-input-area" id="chat-input-area">
+            <div style="display:flex; gap:8px; align-items:flex-end; padding:16px 24px; border-top:1px solid var(--border); background:var(--bg);">
+              <textarea id="viz-chat-input" rows="1" placeholder="向服务群提问... 例如: 写作房间的上下文是怎么拿到的？" style="flex:1; padding:10px 14px; border:1px solid var(--border); border-radius:8px; font-family:'Noto Sans SC',sans-serif; font-size:0.85rem; resize:none; outline:none; min-height:40px; max-height:100px; line-height:1.5; background:#fff;"></textarea>
+              <button id="viz-chat-send" onclick="vizChatSend()" style="padding:8px 16px; background:var(--accent); color:#fff; border:none; border-radius:8px; font-size:0.85rem; cursor:pointer; font-family:'Noto Sans SC',sans-serif; white-space:nowrap; height:40px;">发送</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- File Tree -->
+    <div class="tree-section">
+      <h2>代码库结构</h2>
+      <div class="file-tree">
+<span class="dir">workspace j/</span>
+├── <span class="file">index.html</span>              <span class="comment"># 工作台主页壳子</span>
+├── <span class="dir">css/</span>
+│   └── <span class="file">base.css</span>             <span class="comment"># 设计系统 (暖白+Newsreader)</span>
+├── <span class="dir">js/</span>
+│   ├── <span class="highlight">app.js</span>               <span class="comment"># 核心: 模块注册 + 事件总线 + 路由</span>
+│   └── <span class="file">api.js</span>               <span class="comment"># HTTP客户端 + SSE流</span>
+├── <span class="dir">modules/</span>
+│   ├── <span class="dir">archive/</span>
+│   │   └── <span class="file">index.js</span>         <span class="comment"># 档案馆: 时间线 + 上传 + 跨房间</span>
+│   ├── <span class="dir">writing/</span>
+│   │   └── <span class="file">index.js</span>         <span class="comment"># 写作: AI工具 + 草稿 + 上下文感知</span>
+│   ├── <span class="dir">podcast/</span>
+│   │   └── <span class="file">index.js</span>         <span class="comment"># 播客: 播放器 + 拖拽时间线 + 同步</span>
+│   └── <span class="dir">dialogue/</span>
+│       └── <span class="file">index.js</span>         <span class="comment"># 对话: 自我探索 + 多轮Chat + 记忆</span>
+├── <span class="dir">server/</span>
+│   ├── <span class="file">index.js</span>             <span class="comment"># Express入口 (端口3456)</span>
+│   ├── <span class="dir">routes/</span>
+│   │   ├── <span class="file">archive.js</span>       <span class="comment"># 档案API + Whisper转写</span>
+│   │   ├── <span class="file">writing.js</span>       <span class="comment"># 写作API + AI生成(SSE)</span>
+│   │   ├── <span class="file">podcast.js</span>       <span class="comment"># 播客API (代理podcast-analyze)</span>
+│   │   └── <span class="file">chat.js</span>          <span class="comment"># 对话API + 全量上下文注入</span>
+│   └── <span class="dir">services/</span>
+│       ├── <span class="highlight">claude.js</span>        <span class="comment"># Anthropic SDK: 单轮/多轮/完成</span>
+│       └── <span class="highlight">memory.js</span>        <span class="comment"># 个人记忆: JSON存储 + 上下文</span>
+├── <span class="dir">data/</span>
+│   ├── <span class="dir">archive/</span>             <span class="comment"># 档案JSON存储</span>
+│   ├── <span class="dir">drafts/</span>              <span class="comment"># 写作草稿</span>
+│   └── <span class="dir">memory/</span>
+│       └── <span class="file">memory.json</span>      <span class="comment"># 个人上下文记忆</span>
+├── <span class="file">visualize.html</span>           <span class="comment"># 本页面 (代码库可视化)</span>
+└── <span class="file">.env</span>                     <span class="comment"># ANTHROPIC_API_KEY + PORT</span>
+
+<span class="comment"># 外部数据源 (只读)</span>
+<span class="dir">~/ObsidianVault/voice-context/</span>     <span class="comment"># voice-to-context 输出</span>
+├── <span class="dir">daily-log/</span>    <span class="comment"># 每日日志</span>
+├── <span class="dir">ideas/</span>        <span class="comment"># 灵感随记</span>
+└── <span class="dir">expenses/</span>     <span class="comment"># 消费记录</span>
+
+<span class="dir">~/Desktop/podcast-analyze/data/</span>    <span class="comment"># 播客分析数据</span>
+├── <span class="file">db_index.json</span>  <span class="comment"># 单集索引</span>
+└── <span class="dir">episodes/</span>      <span class="comment"># 分析结果JSON</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Interactive group chat — user can ask questions to the service group
+    const vizInput = document.getElementById('viz-chat-input');
+    vizInput.addEventListener('input', () => {
+      vizInput.style.height = 'auto';
+      vizInput.style.height = Math.min(vizInput.scrollHeight, 100) + 'px';
+    });
+    vizInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); vizChatSend(); }
+    });
+
+    // Service knowledge base — each service knows about itself
+    const serviceKnowledge = {
+      'app': {
+        name: 'app.js', avatar: 'av-app', color: '#4a6741', label: '总控',
+        keywords: ['路由','导航','事件','总线','emit','on','注册','register','模块','切换','状态栏','hash'],
+        knowledge: `我是 app.js，工作台的核心调度。我做三件事：
+1. 模块注册制 — 每个房间通过 app.register(name, module) 注册，我创建 DOM 容器并管理 show/hide
+2. 事件总线 — app.emit(event, data) 广播，app.on(event, fn) 监听。跨房间通信都走这里
+3. 共享上下文 — app.getFullContext() 聚合 Memory + Archive 给任何需要的模块
+
+跨房间发送的关键方法：
+- app.sendToWriting(data) → emit('writing:receive', data) → 自动导航到写作
+- app.sendToDialogue(data) → emit('dialogue:receive', data) → 自动导航到对话
+路由是 hash-based，#archive, #writing, #podcast, #dialogue`
+      },
+      'archive': {
+        name: '档案馆', avatar: 'av-archive', color: '#b45309', label: '内容源头',
+        keywords: ['档案','语音','录音','上传','obsidian','日志','灵感','消费','voice','转写','whisper','ffmpeg'],
+        knowledge: `我是档案馆，数据从两处来：
+1. Obsidian 导入 — 自动读取 ~/ObsidianVault/voice-context/ 下的 daily-log/、ideas/、expenses/ 文件夹里的 .md 文件
+2. 录音上传 — 用户在页面上传音频 → POST /api/archive/upload → multer 接收 → ffmpeg 转 16kHz WAV → whisper-cli 本地转写 → Claude 分类(日志/灵感/消费/记忆) → 存 JSON 到 data/archive/ → 更新 memory
+
+每条档案有跨房间按钮：archiveSendToWriting(id) 和 archiveSendToDialogue(id)，通过 app.sendToWriting/sendToDialogue 发送`
+      },
+      'writing': {
+        name: '写作房间', avatar: 'av-writing', color: '#2563eb', label: '内容产出',
+        keywords: ['写作','选题','口播','优化','草稿','AI','生成','平台','小红书','抖音','公众号','上下文','context'],
+        knowledge: `我是写作房间，有四个 AI 模式：
+1. 选题灵感 (topic) — 生成 5 个选题方向，基于个人记忆+档案
+2. 口播稿 (script) — 根据平台(小红书/抖音/公众号)生成带语气标注的口播稿
+3. 内容优化 (optimize) — 润色现有内容
+4. 对话式写作 (explore) — AI 引导你梳理思路，不替你写
+
+上下文感知：后端 writing.js 的 generate 接口会读取 memory.getContext() + Obsidian 的日志和灵感文件，注入到 Claude 的 system prompt 里。所以 AI 写出来的选题是基于 用户 真实经历的。
+
+跨房间接收：app.on('writing:receive', data) 监听，收到后自动创建新草稿填充内容，显示来源标签。`
+      },
+      'podcast': {
+        name: '播客模块', avatar: 'av-podcast', color: '#7c3aed', label: '外部知识',
+        keywords: ['播客','podcast','播放','音频','时间线','拖拽','进度条','章节','同步','分析','deepgram','audio'],
+        knowledge: `我是播客模块，数据来自 ~/Desktop/podcast-analyze/data/。
+
+播放器功能：
+- HTML5 Audio 元素，支持 play/pause/seek
+- 可拖拽进度条 — mousedown → mousemove → mouseup 事件链，实时更新 audio.currentTime
+- 15s 快进/快退
+- 时间线自动同步 — audio.timeupdate 事件触发 syncTimeline()，遍历 timeline 数组找到当前章节
+- 章节导航侧边栏 — 点击跳转，自动 scrollIntoView
+
+数据代理：server/routes/podcast.js 读取 db_index.json 获取列表，读取 episodes/{id}.json 获取分析详情。不走网络请求，直接读文件系统。`
+      },
+      'dialogue': {
+        name: '对话模块', avatar: 'av-dialogue', color: '#be185d', label: '自我探索',
+        keywords: ['对话','探索','反思','盲点','记忆','聊天','chat','多轮','复盘','挑战','假设','连接'],
+        knowledge: `我是对话模块，用于自我探索。
+
+四种起始模式：复盘今天、思维盲点、连接灵感、挑战假设。
+
+AI 上下文注入（chat.js 后端）：
+1. memory.getContext() — 最近 20 条记忆
+2. data/archive/ 目录最近 5 个 JSON 文件
+3. ~/ObsidianVault/voice-context/daily-log/ 最近 3 篇日志
+4. ~/ObsidianVault/voice-context/ideas/ 最近 3 篇灵感
+全部拼入 system prompt，所以 AI 真的"认识"用户。
+
+多轮对话：前端维护 messages 数组，每次发送时把完整历史发到 POST /api/chat，后端用 claude.streamConversation() 做多轮 SSE 流式。`
+      },
+      'claude': {
+        name: 'Claude 服务', avatar: 'av-claude', color: '#1a1a18', label: 'AI 中枢',
+        keywords: ['claude','api','anthropic','模型','流式','sse','stream','sonnet','sdk','调用'],
+        knowledge: `我是 Claude 服务（server/services/claude.js），封装了 @anthropic-ai/sdk。
+
+三种调用方式：
+1. streamResponse(res, system, user) — 单轮流式，写作用
+2. streamConversation(res, system, messages[]) — 多轮流式，对话用
+3. complete(system, user) — 同步完成，档案分类用
+
+全部用 claude-sonnet-4-20250514 模型，max_tokens 4096。
+SSE 格式：data: {"text":"..."}\n\n，结束时发 data: [DONE]\n\n。
+前端 api.js 的 stream() 方法用 fetch + ReadableStream 读取。`
+      },
+      'memory': {
+        name: '记忆服务', avatar: 'av-memory', color: '#166534', label: '个人上下文',
+        keywords: ['记忆','memory','上下文','context','json','存储','条目','最近'],
+        knowledge: `我是记忆服务（server/services/memory.js），管理 data/memory/memory.json。
+
+方法：
+- load() — 读取完整 JSON
+- save(data) — 写入（自动加 updatedAt 时间戳）
+- addEntry(entry) — 追加一条记忆（text, type, date）
+- getCount() — 返回总条目数
+- getContext() — 返回最近 20 条记忆格式化字符串，给 AI 做 prompt 背景
+
+谁在写我：archive.js 上传录音处理完后调 memory.addEntry()
+谁在读我：writing.js 和 chat.js 的每次 AI 调用都先调 memory.getContext()`
+      }
+    };
+
+    function vizChatSend() {
+      const text = vizInput.value.trim();
+      if (!text) return;
+      vizInput.value = '';
+      vizInput.style.height = 'auto';
+
+      // Add user message
+      addVizMsg('user', 'Me', '我', text);
+
+      // Find which services should respond
+      const responses = findResponders(text);
+      let delay = 600;
+      responses.forEach(r => {
+        setTimeout(() => addVizMsg('service', r.avatar, r.name + ' — ' + r.label, r.response, r.color), delay);
+        delay += 800;
+      });
+
+      // If no service matched, app.js responds as catch-all
+      if (responses.length === 0) {
+        setTimeout(() => {
+          addVizMsg('service', 'av-app', 'app.js — 总控',
+            '这个问题涉及的范围比较广。建议你问得更具体一些，比如：\n• 某个模块是怎么工作的？\n• 数据从A到B是怎么流转的？\n• 某个API端点的具体逻辑？\n• 跨房间通信是怎么实现的？', '#4a6741');
+        }, delay);
+      }
+    }
+
+    function findResponders(question) {
+      const q = question.toLowerCase();
+      const results = [];
+
+      for (const [key, svc] of Object.entries(serviceKnowledge)) {
+        const score = svc.keywords.filter(kw => q.includes(kw)).length;
+        if (score > 0) {
+          results.push({
+            score,
+            avatar: svc.avatar,
+            name: svc.name,
+            label: svc.label,
+            color: svc.color,
+            response: generateResponse(svc, question)
+          });
+        }
+      }
+
+      // Sort by relevance, take top 2-3
+      results.sort((a, b) => b.score - a.score);
+      return results.slice(0, Math.min(3, results.length));
+    }
+
+    function generateResponse(svc, question) {
+      // Smart excerpt from knowledge base based on question keywords
+      const q = question.toLowerCase();
+      const lines = svc.knowledge.split('\n').filter(l => l.trim());
+
+      // Find most relevant lines
+      const scored = lines.map(line => {
+        const lineL = line.toLowerCase();
+        let s = 0;
+        svc.keywords.forEach(kw => { if (lineL.includes(kw)) s++; });
+        question.split(/\s+/).forEach(w => { if (w.length > 1 && lineL.includes(w.toLowerCase())) s += 2; });
+        return { line, score: s };
+      });
+
+      scored.sort((a, b) => b.score - a.score);
+      const topLines = scored.slice(0, 6).sort((a, b) => lines.indexOf(a.line) - lines.indexOf(b.line));
+
+      // Return full knowledge if short, or relevant excerpt
+      if (lines.length <= 8) return svc.knowledge;
+      return topLines.map(l => l.line).join('\n');
+    }
+
+    function addVizMsg(type, avatarClass, name, text, color) {
+      const container = document.querySelector('.chat-messages');
+      const msg = document.createElement('div');
+      msg.className = 'chat-msg';
+      msg.style.opacity = '0';
+      msg.style.transform = 'translateY(10px)';
+
+      if (type === 'user') {
+        msg.innerHTML = `
+          <div class="chat-avatar" style="background:var(--bg3); color:var(--text2);">Me</div>
+          <div class="chat-body">
+            <div class="chat-name" style="color:var(--text2)">我</div>
+            <div class="chat-text" style="background:var(--bg2); padding:8px 14px; border-radius:10px; display:inline-block;">${escHtml(text)}</div>
+          </div>
+        `;
+      } else {
+        msg.innerHTML = `
+          <div class="chat-avatar ${avatarClass}">${avatarClass.replace('av-','').charAt(0).toUpperCase()}</div>
+          <div class="chat-body">
+            <div class="chat-name" style="color:${color || 'var(--text)'}">${name}</div>
+            <div class="chat-text" style="white-space:pre-wrap;">${escHtml(text)}</div>
+          </div>
+        `;
+      }
+
+      container.appendChild(msg);
+      requestAnimationFrame(() => {
+        msg.style.transition = 'all 0.3s ease';
+        msg.style.opacity = '1';
+        msg.style.transform = 'translateY(0)';
+      });
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function escHtml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+              .replace(/`([^`]+)`/g, '<code>$1</code>')
+              .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    }
+  </script>
+</body>
+</html>

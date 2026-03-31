@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \":*)",
+      "WebFetch(domain:github.com)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/joycesun/Desktop/workspace-core/scripts/check-claude-service.js"
+          }
+        ]
+      }
+    ]
+  }
+}
