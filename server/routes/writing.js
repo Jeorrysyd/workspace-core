@@ -6,7 +6,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const crypto = require('crypto');
-const claude = require('../services/claude');
+const claude = require('../services/ai-provider');
 const notes = require('../services/notes');
 
 // 从 .env 读取工作台主人名字，不再硬编码

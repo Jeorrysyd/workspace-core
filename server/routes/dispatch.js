@@ -3,7 +3,7 @@
  * Two-layer routing: fast keyword matching → Claude AI fallback
  */
 const express = require('express');
-const claude = require('../services/claude');
+const claude = require('../services/ai-provider');
 
 const router = express.Router();
 

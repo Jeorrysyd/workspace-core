@@ -3,7 +3,7 @@
  * Context-aware conversational AI with memory
  */
 const express = require('express');
-const claude = require('../services/claude');
+const claude = require('../services/ai-provider');
 const notes = require('../services/notes');
 const fs = require('fs');
 const path = require('path');

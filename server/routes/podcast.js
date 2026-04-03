@@ -9,7 +9,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const { execFile, spawn } = require('child_process');
 const Parser = require('rss-parser');
-const claude = require('../services/claude');
+const claude = require('../services/ai-provider');
 
 
 

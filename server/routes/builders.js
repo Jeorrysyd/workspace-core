@@ -5,7 +5,7 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const claude = require('../services/claude');
+const claude = require('../services/ai-provider');
 
 const router = express.Router();
 
