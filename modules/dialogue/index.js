@@ -23,15 +23,15 @@
         <div class="module-header">
           <h2>对话</h2>
           <div class="module-header-actions">
-            <button class="btn btn-ghost btn-sm" onclick="dialogueClear()">
+            <button class="btn btn-ghost btn-sm" data-action="clear">
               <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
               新对话
             </button>
-            <button class="btn btn-ghost btn-sm" onclick="dialogueExtractInsights()">
+            <button class="btn btn-ghost btn-sm" data-action="extract-insights">
               <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
               提取洞察
             </button>
-            <button class="btn btn-ghost btn-sm" onclick="dialogueSendToWriting()">
+            <button class="btn btn-ghost btn-sm" data-action="send-to-writing">
               <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
               发送到写作
             </button>
@@ -56,7 +56,7 @@
           <div class="dialogue-input-area">
             <div style="max-width:700px; margin:0 auto; display:flex; gap:var(--space-sm); align-items:flex-end;">
               <textarea class="textarea" id="dialogue-input" rows="1" placeholder="输入你的想法..." style="min-height:42px; max-height:120px; resize:none; font-size:var(--text-sm); padding:var(--space-sm) var(--space-md);"></textarea>
-              <button class="btn btn-primary" id="dialogue-send-btn" onclick="dialogueSend()" style="height:42px; min-width:42px; padding:0; display:flex; align-items:center; justify-content:center;">
+              <button class="btn btn-primary" id="dialogue-send-btn" data-action="send" style="height:42px; min-width:42px; padding:0; display:flex; align-items:center; justify-content:center;">
                 <svg viewBox="0 0 24 24" style="width:16px;height:16px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               </button>
             </div>
@@ -74,6 +74,24 @@
         if (e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
           dialogueSend();
+        }
+      });
+
+      // Event delegation for data-action buttons
+      view.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        const id = btn.dataset.id;
+        if (action === 'clear') dialogueClear();
+        if (action === 'extract-insights') dialogueExtractInsights();
+        if (action === 'send-to-writing') dialogueSendToWriting();
+        if (action === 'send') dialogueSend();
+        if (action === 'run-command') dialogueRunCommand(id);
+        if (action === 'load-conversation') dialogueLoadConversation(id);
+        if (action === 'dismiss-modal') {
+          const modal = btn.closest('.dialogue-kb-modal');
+          if (modal) modal.remove();
         }
       });
 
@@ -106,9 +124,7 @@
     drift: { label: '暗流', description: '发现你没意识到自己在想什么' },
     dayopen: { label: '清晨', description: '清空大脑，AI帮你规划今天的优先级' },
     trace: { label: '溯源', description: '追踪一个想法的演变轨迹', needsArg: true, argHint: '关键词' },
-    challenge: { label: '质疑', description: '压测某个信念或假设', needsArg: true, argHint: '观点' },
-    ghost: { label: '代言', description: '用你的语气回答问题', needsArg: true, argHint: '问题' },
-    aiview: { label: 'AI观点', description: '记录你对 AI 的看法演变', autoSave: true },
+    challenge: { label: '质疑', description: '压测某个信念，或用你的声音回答问题', needsArg: true, argHint: '观点或问题' },
     roundtable: { label: '圆桌', description: '邀请思想者一起讨论', needsArg: true, argHint: '话题', isRoundtable: true }
   };
 
@@ -125,7 +141,7 @@
     const row = document.getElementById('dialogue-commands-row');
     if (!row) return;
     row.innerHTML = Object.entries(SLASH_COMMANDS).map(([id, cmd]) =>
-      `<button class="dialogue-command-chip" onclick="dialogueRunCommand('${id}')" title="${cmd.description}">
+      `<button class="dialogue-command-chip" data-action="run-command" data-id="${id}" title="${cmd.description}">
         <span class="command-chip-slash">/</span><span class="command-chip-name">${id}</span>${cmd.needsArg ? `<span class="command-chip-arg">&lt;${cmd.argHint}&gt;</span>` : ''}
         <span class="command-chip-label">${cmd.label}</span>
       </button>`
@@ -183,7 +199,7 @@
           <p class="text-xs text-tertiary" style="margin-bottom:var(--space-sm); text-transform:uppercase; letter-spacing:0.05em;">最近对话</p>
           <div style="display:flex; flex-direction:column; gap:2px;">
             ${recent.map(c => `
-              <div class="dialogue-history-item" onclick="dialogueLoadConversation('${c.id}')">
+              <div class="dialogue-history-item" data-action="load-conversation" data-id="${c.id}">
                 <span class="text-sm" style="font-weight:500;">${escHtml(c.title)}</span>
                 <span class="text-xs text-tertiary">${c.messageCount || 0} 条 · ${formatDate(c.updatedAt)}</span>
               </div>
@@ -196,13 +212,9 @@
     }
   }
 
-  function formatDate(isoStr) {
-    if (!isoStr) return '';
-    const d = new Date(isoStr);
-    return `${d.getMonth() + 1}月${d.getDate()}日`;
-  }
+  const formatDate = shared.formatDate;
 
-  window.dialogueLoadConversation = async function (id) {
+  async function dialogueLoadConversation(id) {
     try {
       const conv = await api.get(`/api/chat/conversations/${id}`);
       messages = conv.messages || [];
@@ -220,12 +232,12 @@
     } catch (e) {
       app.setStatus('加载对话失败: ' + e.message);
     }
-  };
+  }
 
   // --- Core chat functions ---
 
   // Cross-room explore entry point
-  window.dialogueStart = async function (mode, customContext) {
+  async function dialogueStart(mode, customContext) {
     const prompt = customContext || '和我聊聊吧';
     messages = [];
     currentConversationId = null;
@@ -235,9 +247,9 @@
 
     addMessage('user', prompt);
     await sendToAI(prompt);
-  };
+  }
 
-  window.dialogueRunCommand = async function (commandId, arg) {
+  async function dialogueRunCommand(commandId, arg) {
     if (isStreaming) return;
     const cmd = SLASH_COMMANDS[commandId];
     if (!cmd) return;
@@ -269,7 +281,7 @@
 
     addMessage('user', arg ? `/${commandId} ${arg}` : `/${commandId}`);
     await sendCommandToAI(commandId, arg);
-  };
+  }
 
   async function sendCommandToAI(commandId, commandArg) {
     isStreaming = true;
@@ -319,27 +331,11 @@
       // Log command to history
       api.post('/api/chat/history', { command: commandId, commandArg }).catch(() => {});
 
-      // Auto-save logic per command type
-      if (cmd.autoSave) {
-        try {
-          const jsonMatch = fullText.match(/```json\s*([\s\S]*?)```/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[1]);
-
-            if (commandId === 'aiview' && parsed.views && parsed.views.length) {
-              const saveRes = await api.post('/api/chat/save-aiview', parsed);
-              addMessage('ai', `已保存到档案馆 (ai-views.json)，累计 ${saveRes.totalEntries} 次记录`);
-            }
-          }
-        } catch (e) {
-          addMessage('ai', `自动保存失败：${e.message}。你可以手动复制上方 JSON。`);
-        }
-      }
       app.setStatus('Agent is ready');
     });
   }
 
-  window.dialogueSend = async function () {
+  async function dialogueSend() {
     if (isStreaming) return;
     const input = document.getElementById('dialogue-input');
     const text = input.value.trim();
@@ -376,7 +372,7 @@
 
     addMessage('user', text);
     await sendToAI(text);
-  };
+  }
 
   async function sendToAI(userText) {
     isStreaming = true;
@@ -424,39 +420,21 @@
   /** Render a message DOM element (for history replay, does NOT push to messages array) */
   function renderMessageDOM(role, text) {
     const container = document.getElementById('dialogue-messages');
-    const el = document.createElement('div');
-    el.className = `dialogue-msg dialogue-msg-${role}`;
-    el.innerHTML = `
-      <div class="msg-avatar">${role === 'ai' ? 'J' : 'Me'}</div>
-      <div class="msg-bubble">
-        <div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${escHtml(text)}</div>
-      </div>
-    `;
-    container.appendChild(el);
-    return el;
+    return shared.addMessage(container, role, text);
   }
 
   /** Add a message — pushes to array AND renders DOM */
   function addMessage(role, text) {
-    const msgIndex = messages.length;
     messages.push({ role, text });
     const container = document.getElementById('dialogue-messages');
-    const el = document.createElement('div');
-    el.className = `dialogue-msg dialogue-msg-${role}`;
-    el.innerHTML = `
-      <div class="msg-avatar">${role === 'ai' ? 'J' : 'Me'}</div>
-      <div class="msg-bubble">
-        <div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${escHtml(text)}</div>
-      </div>
-    `;
-    container.appendChild(el);
-    container.scrollTop = container.scrollHeight;
+    const el = shared.addMessage(container, role, text);
+    shared.scrollToBottom(container);
     return el;
   }
 
   // --- Actions ---
 
-  window.dialogueClear = function () {
+  function dialogueClear() {
     messages = [];
     currentConversationId = null;
     incomingContext = null;
@@ -465,10 +443,10 @@
     document.getElementById('dialogue-messages').innerHTML = '';
     // Refresh history list
     loadRecentConversations();
-  };
+  }
 
   /** Send to writing — tab selector modal with optional instruction */
-  window.dialogueSendToWriting = function () {
+  function dialogueSendToWriting() {
     if (!messages.length) return;
 
     // Remove existing modal if any
@@ -485,17 +463,20 @@
         <div style="display:flex; flex-direction:column; gap:var(--space-xs); margin-bottom:var(--space-md);">
           <button class="btn btn-ghost btn-sm dialogue-sendto-tab" data-tab="auto" style="justify-content:flex-start;">自动化写作</button>
           <button class="btn btn-ghost btn-sm dialogue-sendto-tab" data-tab="script" style="justify-content:flex-start;">视频口播稿</button>
-          <button class="btn btn-ghost btn-sm dialogue-sendto-tab" data-tab="topics" style="justify-content:flex-start;">自媒体主题</button>
         </div>
         <div style="margin-bottom:var(--space-sm);">
           <label class="text-xs text-tertiary">写作指令（可选）</label>
           <input class="input" id="dialogue-sendto-instruction" placeholder="例：以这段对话写一个播客大纲" value="">
         </div>
-        <button class="btn btn-ghost btn-sm" onclick="this.closest('.dialogue-kb-modal').remove()" style="width:100%; margin-top:var(--space-xs);">取消</button>
+        <button class="btn btn-ghost btn-sm" data-action="dismiss-modal" style="width:100%; margin-top:var(--space-xs);">取消</button>
       </div>
     `;
     document.body.appendChild(modal);
-    modal.addEventListener('click', (e) => { if (e.target === modal) modal.remove(); });
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.remove();
+      const btn = e.target.closest('[data-action="dismiss-modal"]');
+      if (btn) modal.remove();
+    });
 
     // Bind tab buttons
     modal.querySelectorAll('.dialogue-sendto-tab').forEach(btn => {
@@ -506,7 +487,7 @@
         doSendToWriting(targetTab, instruction);
       });
     });
-  };
+  }
 
   function doSendToWriting(targetTab, instruction) {
     // Build full conversation text
@@ -529,7 +510,7 @@
   }
 
   /** Extract insights from current conversation and save to memory */
-  window.dialogueExtractInsights = async function () {
+  async function dialogueExtractInsights() {
     if (!currentConversationId || messages.length < 2) {
       app.setStatus('请先进行一段对话');
       return;
@@ -548,7 +529,7 @@
     } catch (e) {
       app.setStatus('提取失败: ' + e.message);
     }
-  };
+  }
 
   // ========== Roundtable Functions ==========
 
@@ -769,7 +750,7 @@
     if (stopBtn) stopBtn.style.display = 'none';
   }
 
-  function escHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+  const escHtml = shared.escHtml;
 
   app.register('dialogue', DialogueModule);
 })();

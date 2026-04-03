@@ -16,11 +16,11 @@
         <div class="module-header">
           <h2>AI Builders Digest</h2>
           <div class="module-header-actions">
-            <button class="btn btn-ghost btn-sm" id="builders-sources-btn">
+            <button class="btn btn-ghost btn-sm" data-action="show-sources">
               <svg viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               关注列表
             </button>
-            <button class="btn btn-primary btn-sm" id="builders-refresh-btn">
+            <button class="btn btn-primary btn-sm" data-action="refresh">
               <svg viewBox="0 0 24 24" style="width:14px;height:14px"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
               生成 Digest
             </button>
@@ -43,8 +43,15 @@
         </div>
       `;
 
-      document.getElementById('builders-refresh-btn').addEventListener('click', () => buildersRefresh());
-      document.getElementById('builders-sources-btn').addEventListener('click', () => buildersShowSources());
+      view.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        if (action === 'refresh') buildersRefresh();
+        if (action === 'show-sources') buildersShowSources();
+        if (action === 'back-to-digest') buildersBackToDigest();
+        if (action === 'send-to-writing') buildersSendToWriting();
+      });
 
       loadDigest();
     },
@@ -93,7 +100,7 @@
         </div>
       ` : ''}
       <div style="margin-top:var(--space-lg);">
-        <button class="btn btn-sm btn-ghost" onclick="buildersSendToWriting()">
+        <button class="btn btn-sm btn-ghost" data-action="send-to-writing">
           <svg viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           发送到创作
         </button>
@@ -101,8 +108,8 @@
     `;
   }
 
-  window.buildersRefresh = async function () {
-    const btn = document.getElementById('builders-refresh-btn');
+  async function buildersRefresh() {
+    const btn = view.querySelector('[data-action="refresh"]');
     btn.disabled = true;
     btn.textContent = '生成中...';
 
@@ -135,9 +142,9 @@
         loadDigest();
       }
     });
-  };
+  }
 
-  window.buildersShowSources = async function () {
+  async function buildersShowSources() {
     document.getElementById('builders-empty').classList.add('hidden');
     document.getElementById('builders-digest').classList.add('hidden');
     document.getElementById('builders-stream').classList.add('hidden');
@@ -169,24 +176,24 @@
         html += '</div>';
       }
 
-      html += '<button class="btn btn-sm btn-ghost" onclick="buildersBackToDigest()">返回 Digest</button>';
+      html += '<button class="btn btn-sm btn-ghost" data-action="back-to-digest">返回 Digest</button>';
       html += '</div>';
       panel.innerHTML = html;
     } catch (err) {
       panel.innerHTML = `<p class="text-sm" style="color:var(--error);">加载失败: ${escHtml(err.message)}</p>`;
     }
-  };
+  }
 
-  window.buildersBackToDigest = function () {
+  function buildersBackToDigest() {
     document.getElementById('builders-sources-panel').classList.add('hidden');
     if (digestData) {
       renderDigest(digestData);
     } else {
       document.getElementById('builders-empty').classList.remove('hidden');
     }
-  };
+  }
 
-  window.buildersSendToWriting = function () {
+  function buildersSendToWriting() {
     if (!digestData) return;
     const content = [
       digestData.tweetsSummary ? `【X/Twitter 动态】\n${digestData.tweetsSummary}` : '',
@@ -199,9 +206,9 @@
       type: '选题',
       source: 'builders'
     });
-  };
+  }
 
-  function escHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+  const escHtml = shared.escHtml;
 
   app.register('builders', BuildersModule);
 })();

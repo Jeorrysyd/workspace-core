@@ -8,8 +8,6 @@ const path = require('path');
 const cors = require('cors');
 
 const archiveRoutes = require('./routes/archive');
-const writingRoutes = require('./routes/writing');
-const podcastRoutes = require('./routes/podcast');
 const chatRoutes = require('./routes/chat');
 const dispatchRoutes = require('./routes/dispatch');
 const buildersRoutes = require('./routes/builders');
@@ -33,8 +31,6 @@ app.use(express.static(path.join(__dirname, '..')));
 
 // API routes
 app.use('/api/archive', archiveRoutes);
-app.use('/api/writing', writingRoutes);
-app.use('/api/podcast', podcastRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/dispatch', dispatchRoutes);
 app.use('/api/builders', buildersRoutes);

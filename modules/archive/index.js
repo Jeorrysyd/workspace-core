@@ -112,7 +112,10 @@
     container.innerHTML = html;
   }
 
-  window.archiveSelect = function (id) {
+  function archiveSelect(id) {
+    showingProfile = false;
+    document.getElementById('archive-profile-nav').classList.remove('active');
+
     selectedId = id;
     const entry = entries.find(e => e.id === id);
     if (!entry) return;
@@ -154,10 +157,10 @@
         ${entry.source ? `<div class="divider"></div><div class="text-xs text-tertiary">来源: ${escapeHtml(entry.source)}</div>` : ''}
       </div>
     `;
-  };
+  }
 
   // Cross-room actions
-  window.archiveSendToWriting = function (id) {
+  function archiveSendToWriting(id) {
     const entry = entries.find(e => e.id === id);
     if (!entry) return;
     app.sendToWriting({
@@ -166,9 +169,9 @@
       type: entry.type === '灵感' ? '选题' : '随笔',
       source: 'archive'
     });
-  };
+  }
 
-  window.archiveSendToDialogue = function (id) {
+  function archiveSendToDialogue(id) {
     const entry = entries.find(e => e.id === id);
     if (!entry) return;
     app.sendToDialogue({
@@ -176,7 +179,7 @@
       title: entry.title || '',
       context: `档案记录「${entry.title}」(${entry.type}, ${entry.date}):\n\n${entry.content || ''}`
     });
-  };
+  }
 
   function handleSearch(e) {
     const q = e.target.value.toLowerCase();
@@ -196,7 +199,7 @@
     } catch { profileData = null; }
   }
 
-  window.archiveShowProfile = function () {
+  function archiveShowProfile() {
     showingProfile = true;
     selectedId = null;
 
@@ -251,7 +254,7 @@
         </div>
       </div>
     `;
-  };
+  }
 
   function renderProfileList(title, items) {
     if (!items || !items.length) return '';
@@ -265,7 +268,7 @@
     `;
   }
 
-  window.archiveGenerateProfile = async function () {
+  async function archiveGenerateProfile() {
     const btn = document.getElementById('profile-update-btn');
     if (btn) { btn.disabled = true; btn.textContent = '生成中...'; }
     app.setStatus('正在分析所有档案数据，生成个人档案...');
@@ -279,15 +282,7 @@
       app.setStatus('档案生成失败: ' + err.message);
       if (btn) { btn.disabled = false; btn.textContent = '更新档案'; }
     }
-  };
-
-  // Override archiveSelect to clear profile state
-  const _origSelect = window.archiveSelect;
-  window.archiveSelect = function (id) {
-    showingProfile = false;
-    document.getElementById('archive-profile-nav').classList.remove('active');
-    _origSelect(id);
-  };
+  }
 
   function formatDate(s) { try { return new Date(s).toLocaleDateString('zh-CN', { month: 'long', day: 'numeric', weekday: 'short' }); } catch { return s || ''; } }
   function getTypeIcon(type) {

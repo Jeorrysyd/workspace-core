@@ -22,7 +22,6 @@ Configurable via `AI_PROVIDER` in `.env`:
 |----------|-------------|
 | `claude-cli` (default) | Spawns `claude -p` subprocess, uses Claude subscription |
 | `anthropic-api` | Uses `@anthropic-ai/sdk` directly, requires `ANTHROPIC_API_KEY` |
-| `openai-api` | Uses `openai` SDK, requires `OPENAI_API_KEY` (community) |
 
 Architecture:
 ```
@@ -43,15 +42,12 @@ Key rules:
 ## .env Variables
 
 ```
-AI_PROVIDER=claude-cli        # claude-cli | anthropic-api | openai-api
+AI_PROVIDER=claude-cli        # claude-cli | anthropic-api
 ANTHROPIC_API_KEY=            # Required if AI_PROVIDER=anthropic-api
-OPENAI_API_KEY=               # Required if AI_PROVIDER=openai-api
 PORT=3456
 APP_NAME=AI Workspace         # Shown in UI header
 OWNER_NAME=User               # Injected into AI prompts
 NOTES_DIR=~/path/to/notes     # Markdown notes folder (optional)
-PODCAST_DIR=~/path/to/podcast # podcast-analyze project (optional)
-WHISPER_MODEL=~/path/to/model # Local Whisper model (optional)
 ```
 
 ## Project Structure
@@ -62,17 +58,22 @@ workspace-core/
 ├── index.html                # Main shell
 ├── css/base.css              # Design system
 ├── js/
+│   ├── shared.js             # Shared UI utilities (escHtml, addMessage, formatDate)
 │   ├── app.js                # Core: module registry + event bus + routing
 │   └── api.js                # HTTP client + SSE streaming
 ├── modules/
 │   ├── archive/index.js      # Archive room (notes + memory + profile)
-│   ├── content/index.js      # Content/writing room
-│   ├── podcast/index.js      # Podcast room
+│   ├── content/index.js      # Content/writing room (3 modes)
 │   ├── dialogue/index.js     # Dialogue room (self-exploration)
 │   └── builders/index.js     # AI Builders Digest
 ├── server/
 │   ├── index.js              # Express entry + /api/config
-│   ├── routes/               # One route file per room
+│   ├── routes/
+│   │   ├── archive.js        # Notes, memory, profile endpoints
+│   │   ├── content.js        # Bottom-up pipeline + generate + drafts CRUD
+│   │   ├── chat.js           # Dialogue + roundtable endpoints
+│   │   ├── builders.js       # Builders digest endpoints
+│   │   └── dispatch.js       # Smart routing (keyword matching)
 │   └── services/
 │       ├── ai-provider.js    # Provider factory
 │       ├── providers/        # claude-cli.js, anthropic.js, shared.js
@@ -81,37 +82,39 @@ workspace-core/
 └── data/                     # Runtime data (gitignored)
 ```
 
-## Five Rooms
+## Four Rooms
 
 ### Archive
 - Displays markdown notes from NOTES_DIR
-- Voice upload → Whisper transcription → AI classification
+- AI-generated personality profile
 - Cross-room: send entries to Content or Dialogue
 
 ### Content (Writing)
-- Two paths: "From Notes" (bottom-up) or "From Idea" (top-down)
+- Three modes: "From Notes" (bottom-up) | "From Idea" (auto) | "Script Analysis"
 - AI topic brainstorming, script generation, content optimization
 - Context-aware: reads NOTES_DIR notes + memory for AI prompts
-
-### Podcast
-- Proxy for PODCAST_DIR analysis results
-- Full audio player + timeline sync + note-taking
-- Requires PODCAST_DIR to be configured
+- Unified API: all endpoints under `/api/content/*`
 
 ### Dialogue (Self-exploration)
-- Slash commands: /drift /dayopen /trace /challenge /ghost /aiview /roundtable
+- Slash commands: /drift /dayopen /trace /challenge /roundtable
 - Full context: reads memory + recent notes for deep conversation
+- Roundtable: multi-persona AI discussions
 
 ### Builders
-- AI builders digest — tracks top AI builders on X/YouTube
+- AI builders digest — tracks top AI builders on X
 - Generate daily summaries, send to Content room
+
+## Frontend Architecture
+
+- **No framework** — vanilla JS with module pattern (IIFE)
+- **Event delegation** — all click handlers use `data-action` attributes, no `window.*` globals
+- **Shared utilities** — `js/shared.js` provides escHtml, addMessage, formatDate
+- **Event bus** — `app.emit/on` for cross-room communication
 
 ## External Dependencies
 
 All configured via `.env`:
 - **NOTES_DIR**: Markdown folder (read-only import)
-- **PODCAST_DIR**: podcast-analyze project (data proxy)
-- **WHISPER_MODEL**: Local Whisper model file (audio transcription)
 - **AI Provider**: Claude CLI subscription or API key
 
 ## Skill Routing
