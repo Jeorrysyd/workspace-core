@@ -30,21 +30,6 @@ For each builder with tweets:
 Output in Chinese (简体中文), keep technical terms and proper nouns in English.
 语气像一位懂行的朋友在跟你聊天。`;
 
-const PODCAST_PROMPT = `You are remixing podcast episode transcripts for a busy professional.
-
-For each episode:
-- Write a remix of 200-400 words
-- Start with "The Takeaway" — the single most important insight
-- Introduce the speaker (name, role, background)
-- Prioritize insights that are counterintuitive, contrarian, or specific to the speaker's experience
-- Include at least one direct quote
-- Write as if distilling lessons, not summarizing "this episode"
-- Include the YouTube video URL
-- Keep the tone sharp and conversational
-
-Output in Chinese (简体中文), keep technical terms and proper nouns in English.
-语气像一位懂行的朋友在跟你聊天。`;
-
 // ========== Feed Fetching ==========
 
 async function fetchFeed(feedFile) {
@@ -65,13 +50,9 @@ async function fetchFeed(feedFile) {
 /** GET /api/builders/feed — raw feed data */
 router.get('/feed', async (req, res) => {
   try {
-    const [xFeed, podFeed] = await Promise.all([
-      fetchFeed('feed-x.json').catch(() => ({ x: [], stats: {} })),
-      fetchFeed('feed-podcasts.json').catch(() => ({ podcasts: [], stats: {} }))
-    ]);
+    const xFeed = await fetchFeed('feed-x.json').catch(() => ({ x: [], stats: {} }));
     res.json({
       x: xFeed,
-      podcasts: podFeed,
       fetchedAt: new Date().toISOString()
     });
   } catch (err) {
@@ -119,15 +100,11 @@ router.post('/refresh', async (req, res) => {
     // 1. Fetch feeds
     res.write(`data: ${JSON.stringify({ text: '正在拉取最新 feed...\n\n' })}\n\n`);
 
-    const [xFeed, podFeed] = await Promise.all([
-      fetchFeed('feed-x.json').catch(() => ({ x: [], stats: {} })),
-      fetchFeed('feed-podcasts.json').catch(() => ({ podcasts: [], stats: {} }))
-    ]);
+    const xFeed = await fetchFeed('feed-x.json').catch(() => ({ x: [], stats: {} }));
 
     const xBuilders = xFeed.x || [];
-    const podcasts = podFeed.podcasts || [];
 
-    if (xBuilders.length === 0 && podcasts.length === 0) {
+    if (xBuilders.length === 0) {
       res.write(`data: ${JSON.stringify({ text: '没有找到新内容。' })}\n\n`);
       res.write('data: [DONE]\n\n');
       res.end();
@@ -160,39 +137,16 @@ router.post('/refresh', async (req, res) => {
       res.write(`data: ${JSON.stringify({ text: tweetsSummary + '\n\n' })}\n\n`);
     }
 
-    // 3. Summarize podcasts
-    let podcastSummary = '';
-    if (podcasts.length > 0) {
-      res.write(`data: ${JSON.stringify({ text: `--- Podcasts (${podFeed.stats?.podcastEpisodes || podcasts.length} 期) ---\n\n` })}\n\n`);
-
-      const podData = podcasts.map(p => ({
-        name: p.name,
-        title: p.title,
-        url: p.url,
-        publishedAt: p.publishedAt,
-        transcript: (p.transcript || '').slice(0, 6000)
-      }));
-
-      podcastSummary = await claude.complete(
-        PODCAST_PROMPT,
-        JSON.stringify(podData, null, 2)
-      );
-
-      res.write(`data: ${JSON.stringify({ text: podcastSummary + '\n\n' })}\n\n`);
-    }
-
-    // 4. Cache digest
+    // 3. Cache digest
     const today = new Date().toISOString().slice(0, 10);
     const digest = {
       date: today,
       generatedAt: new Date().toISOString(),
       feedGeneratedAt: xFeed.generatedAt || podFeed.generatedAt,
       tweetsSummary,
-      podcastSummary,
       stats: {
         xBuilders: xFeed.stats?.xBuilders || 0,
-        totalTweets: xFeed.stats?.totalTweets || 0,
-        podcastEpisodes: podFeed.stats?.podcastEpisodes || 0
+        totalTweets: xFeed.stats?.totalTweets || 0
       }
     };
 

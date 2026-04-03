@@ -78,7 +78,7 @@ const SLASH_COMMANDS = {
   },
   challenge: {
     label: '质疑',
-    description: '压测某个信念或假设',
+    description: '压测某个信念或假设，或用你的声音回答一个问题',
     prompt: (arg) => `我想压测一下自己关于「${arg}」的想法和信念。请基于我的个人记录执行以下分析：
 
 1. **信念提取**：从我的记录中找出我关于「${arg}」的核心信念和假设。我到底在相信什么？把隐含的假设也挖出来。
@@ -93,78 +93,9 @@ const SLASH_COMMANDS = {
 
 6. **升级建议**：基于以上分析，我关于这个话题的思维可以怎么"升级"？给出一个更nuanced的观点。
 
+7. **代言回答**：最后，用${OWNER_NAME}自己的语气和风格，基于记录中的表达习惯，写一段"如果${OWNER_NAME}想清楚了这个问题，ta 会怎么说"的回答。
+
 格式要求：用中文回复，语气像一个尖锐但善意的辩论搭档——不留情面但目的是帮你变强。`
-  },
-  ghost: {
-    label: '代言',
-    description: '用你的语气和风格回答一个问题',
-    prompt: (arg) => `请基于我所有的个人记录、记忆和思维风格，用"我"（${OWNER_NAME}）的语气回答这个问题：「${arg}」
-
-要求：
-1. **语气模仿**：分析我在记录中的表达风格——用词习惯、句式偏好、中英文混用模式、思考深度——然后模仿这种风格来回答。
-
-2. **基于记录**：回答必须扎根于我实际记录过的想法和经历，不要编造我没说过的观点。如果记录中有相关内容，引用它。
-
-3. **诚实边界**：如果我的记录中没有足够信息来回答这个问题，承认"${OWNER_NAME}可能还没想清楚这个问题"，然后基于已有记录推测可能的方向。
-
-4. **回答后反思**：回答完之后，跳出角色，用第三人称分析：这个回答有多"像"${OWNER_NAME}？哪些部分是有记录支撑的，哪些是推测？
-
-格式要求：
-- 正文用第一人称「我」回答，模仿${OWNER_NAME}的语气
-- 最后加一段【代言分析】用第三人称评估准确度
-- 中文为主，可以夹杂英文，语气自然不做作`
-  },
-  aiview: {
-    label: 'AI观点',
-    description: '记录和追踪你对 AI 的看法演变（含 vibe coding 等）',
-    prompt: () => {
-      // Load existing ai-views to provide context
-      let existingViews = '';
-      try {
-        const viewsPath = path.join(__dirname, '..', '..', 'data', 'archive', 'ai-views.json');
-        if (fs.existsSync(viewsPath)) {
-          const data = JSON.parse(fs.readFileSync(viewsPath, 'utf-8'));
-          if (data.entries && data.entries.length) {
-            existingViews = data.entries.map(e =>
-              `[${e.date}]\n${e.views.map(v => `- (${v.type}) ${v.content}`).join('\n')}`
-            ).join('\n\n');
-          }
-        }
-      } catch {}
-
-      return `请基于我所有的个人记录（日志、灵感、档案、记忆），提取我对 AI 的最新看法。
-
-范围包括但不限于：AI 工具使用感受、vibe coding 体验、对 AI 发展方向的判断、对 AI 与人类关系的思考、对具体 AI 产品的评价。
-
-${existingViews ? `以下是我之前记录过的 AI 观点，请避免重复，只提取新的或发生变化的观点：\n\n${existingViews}\n\n---\n\n` : ''}
-
-请按以下格式输出，严格使用 JSON 格式：
-
-\`\`\`json
-{
-  "views": [
-    {
-      "type": "自己的想法",
-      "topic": "简短主题（3-8字）",
-      "content": "观点的完整表述（1-3句话）",
-      "evidence": "来自哪条记录的依据（标注日期和来源）",
-      "change": "相比之前的看法有什么变化？如果是全新观点写'新观点'"
-    }
-  ],
-  "summary": "一句话总结当前你对AI的整体态度"
-}
-\`\`\`
-
-type 只有两种：
-- "自己的想法"：你自己通过经历和思考形成的观点
-- "认同的观点"：从别人（播客、文章、对话）那里听到并认同的观点
-
-要求：
-- 只提取有明确记录依据的观点，不要编造
-- 如果某个观点和之前记录的观点有变化，在 change 字段说明怎么变的
-- 如果没有找到新的 AI 相关观点，返回空 views 数组并在 summary 说明
-- JSON 必须合法可解析`;
-    }
   }
 };
 
@@ -235,33 +166,6 @@ ${archiveContext || '（暂无档案）'}`;
   }
 
   await claude.streamConversation(res, systemPrompt, claudeMessages);
-});
-
-/** POST /api/chat/save-aiview — persist AI view analysis to archive */
-router.post('/save-aiview', (req, res) => {
-  const { views, summary } = req.body;
-  if (!views || !Array.isArray(views)) {
-    return res.status(400).json({ error: 'views array required' });
-  }
-
-  const viewsPath = path.join(__dirname, '..', '..', 'data', 'archive', 'ai-views.json');
-  let data = { entries: [] };
-  try {
-    if (fs.existsSync(viewsPath)) {
-      data = JSON.parse(fs.readFileSync(viewsPath, 'utf-8'));
-    }
-  } catch {}
-
-  const today = new Date().toISOString().slice(0, 10);
-  data.entries.push({
-    date: today,
-    views,
-    summary: summary || '',
-    savedAt: new Date().toISOString()
-  });
-
-  fs.writeFileSync(viewsPath, JSON.stringify(data, null, 2), 'utf-8');
-  res.json({ ok: true, totalEntries: data.entries.length });
 });
 
 /** POST /api/chat/history — record a command execution */

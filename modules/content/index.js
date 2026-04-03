@@ -8,7 +8,7 @@
   let view = null;
   let abortStream = null;
 
-  // ── Active mode: 'welcome' | 'bottomup' | 'script' | 'topics' | 'auto'
+  // ── Active mode: 'welcome' | 'bottomup' | 'script' | 'auto'
   let currentMode = 'welcome';
 
   // ── Script wizard state ────────────────────────────────────────────────────
@@ -37,11 +37,7 @@
 
   // ========== Helpers ==========
 
-  function escHtml(s) {
-    const d = document.createElement('div');
-    d.textContent = s || '';
-    return d.innerHTML;
-  }
+  const escHtml = shared.escHtml;
 
   // ========== Module lifecycle ==========
 
@@ -71,6 +67,42 @@
         <!-- Input area (mode-specific) -->
         <div id="content-input-area" style="flex-shrink:0; border-top:1px solid var(--border-light); padding:var(--space-md) var(--space-xl); background:var(--bg-primary);"></div>
       `;
+
+      // Event delegation for all clicks
+      view.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        if (action === 'set-mode') contentSetMode(btn.dataset.mode);
+        else if (action === 'save-draft') contentSaveDraft();
+        else if (action === 'bu-select-range') buSelectRange(btn.dataset.range);
+        else if (action === 'bu-start-analyze') buStartAnalyze();
+        else if (action === 'bu-generate-topics') buGenerateTopics();
+        else if (action === 'bu-generate-draft') buGenerateDraft(parseInt(btn.dataset.topic));
+        else if (action === 'bu-reset') buReset();
+        else if (action === 'script-step0') contentScriptStep0();
+        else if (action === 'script-step1') contentScriptStep1();
+        else if (action === 'script-step2') contentScriptStep2();
+        else if (action === 'script-step3') contentScriptStep3();
+        else if (action === 'auto-set-type') autoSetType(btn.dataset.type);
+        else if (action === 'auto-start-research') autoStartResearch();
+        else if (action === 'auto-pick-tier') autoPickTier(btn.dataset.tier);
+        else if (action === 'auto-start-draft') autoStartDraft();
+        else if (action === 'auto-start-review') autoStartReview();
+        else if (action === 'auto-generate-final') autoGenerateFinal();
+        else if (action === 'auto-reset') autoReset();
+      });
+
+      // Event delegation for Enter key on inputs
+      view.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        const input = e.target.closest('[data-enter-action]');
+        if (!input) return;
+        e.preventDefault();
+        const action = input.dataset.enterAction;
+        if (action === 'script-step3') contentScriptStep3();
+        else if (action === 'auto-start-research') autoStartResearch();
+      });
 
       // Cross-room: route to target mode
       app.on('writing:receive', (data) => {
@@ -108,7 +140,7 @@
 
   // ========== Mode management ==========
 
-  window.contentSetMode = function (mode) {
+  function contentSetMode(mode) {
     if (abortStream) { abortStream(); abortStream = null; }
     currentMode = mode;
 
@@ -125,8 +157,6 @@
       renderAutoMode();
     } else if (mode === 'script') {
       renderScriptMode();
-    } else if (mode === 'topics') {
-      renderTopicsMode();
     }
 
     updateHeader();
@@ -152,12 +182,11 @@
       const labels = {
         bottomup: '从笔记出发',
         auto: '从想法出发',
-        script: '口播稿分析',
-        topics: '选题发散'
+        script: '口播稿分析'
       };
-      title.innerHTML = `<span style="cursor:pointer;opacity:0.5;margin-right:var(--space-sm);" onclick="contentSetMode('welcome')">← </span>${labels[currentMode] || '创作'}`;
+      title.innerHTML = `<span style="cursor:pointer;opacity:0.5;margin-right:var(--space-sm);" data-action="set-mode" data-mode="welcome">← </span>${labels[currentMode] || '创作'}`;
       actions.innerHTML = `
-        <button class="btn btn-ghost btn-sm" onclick="contentSaveDraft()">
+        <button class="btn btn-ghost btn-sm" data-action="save-draft">
           <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
           保存草稿
         </button>
@@ -233,12 +262,12 @@
 
         <!-- Two main paths -->
         <div style="display:grid; grid-template-columns:1fr 1fr; gap:var(--space-lg); margin-bottom:var(--space-2xl);">
-          <div class="content-path-card" onclick="contentSetMode('bottomup')" style="cursor:pointer; padding:var(--space-xl); border:1px solid var(--border-light); border-radius:var(--radius-md); transition:border-color 0.2s, box-shadow 0.2s;">
+          <div class="content-path-card" data-action="set-mode" data-mode="bottomup" style="cursor:pointer; padding:var(--space-xl); border:1px solid var(--border-light); border-radius:var(--radius-md); transition:border-color 0.2s, box-shadow 0.2s;">
             <div style="font-size:28px; margin-bottom:var(--space-sm);">📝</div>
             <div style="font-weight:600; margin-bottom:var(--space-xs);">从笔记出发</div>
             <p class="text-xs text-tertiary" style="line-height:1.6;">扫描最近的笔记，发现可以写的素材，AI 帮你生成选题和草稿</p>
           </div>
-          <div class="content-path-card" onclick="contentSetMode('auto')" style="cursor:pointer; padding:var(--space-xl); border:1px solid var(--border-light); border-radius:var(--radius-md); transition:border-color 0.2s, box-shadow 0.2s;">
+          <div class="content-path-card" data-action="set-mode" data-mode="auto" style="cursor:pointer; padding:var(--space-xl); border:1px solid var(--border-light); border-radius:var(--radius-md); transition:border-color 0.2s, box-shadow 0.2s;">
             <div style="font-size:28px; margin-bottom:var(--space-sm);">💡</div>
             <div style="font-weight:600; margin-bottom:var(--space-xs);">从想法出发</div>
             <p class="text-xs text-tertiary" style="line-height:1.6;">输入你的观点或主题，AI 帮你研究、写大纲、生成文章</p>
@@ -249,8 +278,7 @@
         <div style="border-top:1px solid var(--border-light); padding-top:var(--space-lg);">
           <p class="text-xs text-tertiary" style="margin-bottom:var(--space-sm); text-transform:uppercase; letter-spacing:0.05em;">工具箱</p>
           <div style="display:flex; gap:var(--space-sm);">
-            <button class="btn btn-ghost btn-sm" onclick="contentSetMode('script')" style="flex:1;">🎬 口播稿分析</button>
-            <button class="btn btn-ghost btn-sm" onclick="contentSetMode('topics')" style="flex:1;">🔥 选题发散</button>
+            <button class="btn btn-ghost btn-sm" data-action="set-mode" data-mode="script" style="flex:1;">🎬 口播稿分析</button>
           </div>
         </div>
       </div>
@@ -273,7 +301,7 @@
           <p class="text-sm text-tertiary" style="text-align:center; margin-bottom:var(--space-xl);">选择时间范围，AI 会分析你最近的 Obsidian 笔记</p>
           <div style="display:flex; gap:var(--space-sm); justify-content:center; flex-wrap:wrap;">
             ${['24h', '3d', '7d', '14d', '30d'].map(r => `
-              <button class="btn ${r === buTimeRange ? 'btn-primary' : 'btn-ghost'}" onclick="buSelectRange('${r}')" style="min-width:72px;">${r === '24h' ? '24小时' : r === '3d' ? '3天' : r === '7d' ? '7天' : r === '14d' ? '14天' : '30天'}</button>
+              <button class="btn ${r === buTimeRange ? 'btn-primary' : 'btn-ghost'}" data-action="bu-select-range" data-range="${r}" style="min-width:72px;">${r === '24h' ? '24小时' : r === '3d' ? '3天' : r === '7d' ? '7天' : r === '14d' ? '14天' : '30天'}</button>
             `).join('')}
           </div>
         </div>
@@ -333,12 +361,12 @@
     renderInputArea();
   }
 
-  window.buSelectRange = function (range) {
+  function buSelectRange(range) {
     buTimeRange = range;
     renderBottomUp();
   };
 
-  window.buStartAnalyze = async function () {
+  async function buStartAnalyze() {
     buStep = 1;
     renderBottomUp();
     app.setStatus('扫描笔记中...');
@@ -363,7 +391,7 @@
     }
   };
 
-  window.buGenerateTopics = function () {
+  function buGenerateTopics() {
     buStep = 3;
     renderBottomUp();
     app.setStatus('生成选题中...');
@@ -394,7 +422,7 @@
     );
   };
 
-  window.buGenerateDraft = function (topicNum) {
+  function buGenerateDraft(topicNum) {
     const platform = document.getElementById('bu-platform-select')?.value || 'xiaohongshu';
     buStep = 5;
     renderBottomUp();
@@ -426,7 +454,7 @@
     );
   };
 
-  window.buReset = function () {
+  function buReset() {
     buStep = 0; buReport = ''; buTopics = ''; buNoteCount = 0;
     contentSetMode('bottomup');
   };
@@ -479,36 +507,11 @@
     </div>`;
   }
 
-  // ── Topics mode (preserved from writing) ─────────────────────────────────
-
-  function renderTopicsMode() {
-    const main = document.getElementById('content-main');
-    if (!main) return;
-    main.innerHTML = `
-      <div id="content-msg-topics"></div>
-      <div id="content-topics-empty"></div>
-    `;
-    renderTopicsEmptyState();
-  }
-
-  function renderTopicsEmptyState() {
-    const el = document.getElementById('content-topics-empty');
-    const container = document.getElementById('content-msg-topics');
-    if (!el) return;
-    if (container && container.children.length > 0) { el.innerHTML = ''; return; }
-    el.innerHTML = `<div class="empty-state" style="padding:var(--space-2xl) 0;">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      <h3>选题发散</h3>
-      <p>输入一个方向，AI 用 4A 框架生成 32+ 个选题<br>每个选题配三种平台版本</p>
-    </div>`;
-  }
-
-  // ========== Message rendering (shared for script/topics/auto) ==========
+  // ========== Message rendering (shared for script/auto) ==========
 
   function getMsgContainer() {
     if (currentMode === 'auto') return document.getElementById('content-msg-auto');
     if (currentMode === 'script') return document.getElementById('content-msg-script');
-    if (currentMode === 'topics') return document.getElementById('content-msg-topics');
     return null;
   }
 
@@ -517,27 +520,17 @@
     if (!container) return null;
 
     // Clear empty state
-    const emptyIds = { auto: 'content-auto-empty', script: 'content-script-empty', topics: 'content-topics-empty' };
+    const emptyIds = { auto: 'content-auto-empty', script: 'content-script-empty' };
     const emptyEl = document.getElementById(emptyIds[currentMode]);
     if (emptyEl) emptyEl.innerHTML = '';
 
-    const el = document.createElement('div');
-    el.className = `dialogue-msg dialogue-msg-${role === 'ai' ? 'ai' : 'user'}`;
-    el.innerHTML = `
-      <div class="msg-avatar">${role === 'ai' ? 'AI' : 'Me'}</div>
-      <div class="msg-bubble">
-        ${label ? `<div class="text-xs text-tertiary mb-sm" style="font-weight:500;opacity:0.7">${escHtml(label)}</div>` : ''}
-        <div class="msg-text" style="white-space:pre-wrap; line-height:1.8; word-break:break-word">${escHtml(content)}</div>
-      </div>
-    `;
-    container.appendChild(el);
+    const el = shared.addMessage(container, role, content, { label });
     scrollToBottom();
     return el;
   }
 
   function scrollToBottom() {
-    const area = document.getElementById('content-main');
-    if (area) area.scrollTop = area.scrollHeight;
+    shared.scrollToBottom(document.getElementById('content-main'));
   }
 
   // ========== Input area rendering ==========
@@ -552,8 +545,6 @@
       renderBottomUpInput(el);
     } else if (currentMode === 'script') {
       renderScriptInput(el);
-    } else if (currentMode === 'topics') {
-      renderTopicsInput(el);
     } else if (currentMode === 'auto') {
       renderAutoInput(el);
     }
@@ -565,7 +556,7 @@
     if (buStep === 0) {
       el.innerHTML = `
         <div style="max-width:600px; margin:0 auto; text-align:center;">
-          <button class="btn btn-primary" onclick="buStartAnalyze()">开始扫描（${buTimeRange === '24h' ? '24小时' : buTimeRange === '3d' ? '3天' : buTimeRange === '7d' ? '7天' : buTimeRange === '14d' ? '14天' : '30天'}）</button>
+          <button class="btn btn-primary" data-action="bu-start-analyze">开始扫描（${buTimeRange === '24h' ? '24小时' : buTimeRange === '3d' ? '3天' : buTimeRange === '7d' ? '7天' : buTimeRange === '14d' ? '14天' : '30天'}）</button>
         </div>
       `;
     } else if (buStep === 1) {
@@ -573,7 +564,7 @@
     } else if (buStep === 2) {
       el.innerHTML = `
         <div style="max-width:600px; margin:0 auto; text-align:center;">
-          <button class="btn btn-primary" onclick="buGenerateTopics()">生成选题 →</button>
+          <button class="btn btn-primary" data-action="bu-generate-topics">生成选题 →</button>
         </div>
       `;
     } else if (buStep === 3) {
@@ -588,9 +579,9 @@
               <option value="wechat">公众号</option>
               <option value="general">通用</option>
             </select>
-            <button class="btn btn-primary btn-sm" onclick="buGenerateDraft(1)">选题 1</button>
-            <button class="btn btn-ghost btn-sm" onclick="buGenerateDraft(2)">选题 2</button>
-            <button class="btn btn-ghost btn-sm" onclick="buGenerateDraft(3)">选题 3</button>
+            <button class="btn btn-primary btn-sm" data-action="bu-generate-draft" data-topic="1">选题 1</button>
+            <button class="btn btn-ghost btn-sm" data-action="bu-generate-draft" data-topic="2">选题 2</button>
+            <button class="btn btn-ghost btn-sm" data-action="bu-generate-draft" data-topic="3">选题 3</button>
           </div>
         </div>
       `;
@@ -599,8 +590,8 @@
     } else if (buStep === 6) {
       el.innerHTML = `
         <div style="max-width:600px; margin:0 auto; display:flex; justify-content:center; gap:var(--space-sm);">
-          <button class="btn btn-ghost btn-sm" onclick="buReset()">重新开始</button>
-          <button class="btn btn-primary btn-sm" onclick="contentSaveDraft()">保存草稿</button>
+          <button class="btn btn-ghost btn-sm" data-action="bu-reset">重新开始</button>
+          <button class="btn btn-primary btn-sm" data-action="save-draft">保存草稿</button>
         </div>
       `;
     }
@@ -618,7 +609,7 @@
             style="resize:none; font-size:var(--text-sm);"></textarea>
           <div class="flex justify-between items-center mt-sm">
             <span class="text-xs text-tertiary">Step 0 — 你的核心观点</span>
-            <button class="btn btn-primary btn-sm" onclick="contentScriptStep0()">确认观点 →</button>
+            <button class="btn btn-primary btn-sm" data-action="script-step0">确认观点 →</button>
           </div>
         </div>
       `;
@@ -631,7 +622,7 @@
             style="resize:none; font-size:var(--text-sm); font-family:var(--font-mono);"></textarea>
           <div class="flex justify-between items-center mt-sm">
             <span class="text-xs text-tertiary">Step 1 — 结构标注分析</span>
-            <button class="btn btn-primary btn-sm" onclick="contentScriptStep1()">开始分析 →</button>
+            <button class="btn btn-primary btn-sm" data-action="script-step1">开始分析 →</button>
           </div>
         </div>
       `;
@@ -641,7 +632,7 @@
           <div class="text-xs text-tertiary mb-sm">基于以上分析，提炼可复用的结构骨架和写作模板</div>
           <div class="flex justify-between items-center">
             <span class="text-xs text-tertiary">Step 2 — 提炼结构骨架</span>
-            <button class="btn btn-primary btn-sm" onclick="contentScriptStep2()">提炼骨架 →</button>
+            <button class="btn btn-primary btn-sm" data-action="script-step2">提炼骨架 →</button>
           </div>
         </div>
       `;
@@ -651,31 +642,14 @@
           <div class="text-xs text-tertiary mb-sm">输入你的新主题，AI 用上面的骨架 + 你的观点写一篇新口播稿</div>
           <input class="input" id="writing-new-topic" placeholder="新的视频主题..."
             style="margin-bottom:var(--space-sm);"
-            onkeydown="if(event.key==='Enter') contentScriptStep3()">
+            data-enter-action="script-step3">
           <div class="flex justify-between items-center">
             <span class="text-xs text-tertiary">Step 3 — 生成新口播稿（可反复使用）</span>
-            <button class="btn btn-primary btn-sm" onclick="contentScriptStep3()">生成口播稿 →</button>
+            <button class="btn btn-primary btn-sm" data-action="script-step3">生成口播稿 →</button>
           </div>
         </div>
       `;
     }
-  }
-
-  // ── Topics input (preserved) ─────────────────────────────────────────────
-
-  function renderTopicsInput(el) {
-    el.innerHTML = `
-      <div style="max-width:680px; margin:0 auto;">
-        <textarea class="textarea" id="writing-topics-input" rows="3"
-          placeholder="输入一个方向或话题，例如：职场压力、AI 与创作、独居生活..."
-          style="resize:none; font-size:var(--text-sm);"
-          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();contentGenerateTopics()}"></textarea>
-        <div class="flex justify-between items-center mt-sm">
-          <span class="text-xs text-tertiary">4A 框架 × 4 类型 × 8+ 选题</span>
-          <button class="btn btn-primary btn-sm" onclick="contentGenerateTopics()">生成选题 →</button>
-        </div>
-      </div>
-    `;
   }
 
   // ── Auto input (preserved) ───────────────────────────────────────────────
@@ -691,16 +665,16 @@
             placeholder="例如：我认为大多数人学 AI 工具的方式是错的，应该从工作流倒推..."
             style="resize:none; font-size:var(--text-sm); margin-bottom:var(--space-sm);">${povVal}</textarea>
           <div style="display:flex; gap:var(--space-sm); margin-bottom:var(--space-sm);">
-            <button class="btn btn-sm ${articleActive ? 'btn-primary' : 'btn-ghost'}" onclick="autoSetType('article')">科普/深度文章</button>
-            <button class="btn btn-sm ${!articleActive ? 'btn-primary' : 'btn-ghost'}" onclick="autoSetType('social')">自媒体内容</button>
+            <button class="btn btn-sm ${articleActive ? 'btn-primary' : 'btn-ghost'}" data-action="auto-set-type" data-type="article">科普/深度文章</button>
+            <button class="btn btn-sm ${!articleActive ? 'btn-primary' : 'btn-ghost'}" data-action="auto-set-type" data-type="social">自媒体内容</button>
           </div>
           <input class="input" id="auto-topic-input"
             placeholder="输入主题，例如：AI Agent 是什么、为什么独居越来越流行..."
             style="margin-bottom:var(--space-sm);"
-            onkeydown="if(event.key==='Enter') autoStartResearch()">
+            data-enter-action="auto-start-research">
           <div class="flex justify-between items-center">
             <span class="text-xs text-tertiary">${articleActive ? '研究 → 大纲 → 草稿 → 审核 → 终稿' : '4步自媒体写作流水线'}</span>
-            <button class="btn btn-primary btn-sm" onclick="autoStartResearch()">开始研究 →</button>
+            <button class="btn btn-primary btn-sm" data-action="auto-start-research">开始研究 →</button>
           </div>
         </div>
       `;
@@ -715,7 +689,7 @@
         <div style="max-width:680px; margin:0 auto;">
           <div class="text-xs text-tertiary mb-sm">选择内容档位</div>
           <div style="display:flex; gap:var(--space-sm); flex-wrap:wrap;">
-            ${tiers.map(([k, label]) => `<button class="btn btn-sm btn-ghost" onclick="autoPickTier('${k}')">${escHtml(label)}</button>`).join('')}
+            ${tiers.map(([k, label]) => `<button class="btn btn-sm btn-ghost" data-action="auto-pick-tier" data-tier="${k}">${escHtml(label)}</button>`).join('')}
           </div>
         </div>
       `;
@@ -730,7 +704,7 @@
             style="resize:none; font-size:var(--text-sm);"></textarea>
           <div class="flex justify-between items-center mt-sm">
             <span class="text-xs text-tertiary">确认后 AI 开始全文写作</span>
-            <button class="btn btn-primary btn-sm" onclick="autoStartDraft()">确认，开始写作 →</button>
+            <button class="btn btn-primary btn-sm" data-action="auto-start-draft">确认，开始写作 →</button>
           </div>
         </div>
       `;
@@ -741,7 +715,7 @@
         <div style="max-width:680px; margin:0 auto;">
           <div class="flex justify-between items-center">
             <span class="text-xs text-tertiary">AI 自我审核：7 维度评分 + 改进建议</span>
-            <button class="btn btn-primary btn-sm" onclick="autoStartReview()">开始自我审核 →</button>
+            <button class="btn btn-primary btn-sm" data-action="auto-start-review">开始自我审核 →</button>
           </div>
         </div>
       `;
@@ -752,7 +726,7 @@
         <div style="max-width:680px; margin:0 auto;">
           <div class="flex justify-between items-center">
             <span class="text-xs text-tertiary">根据审核建议生成终稿</span>
-            <button class="btn btn-primary btn-sm" onclick="autoGenerateFinal()">生成终稿 →</button>
+            <button class="btn btn-primary btn-sm" data-action="auto-generate-final">生成终稿 →</button>
           </div>
         </div>
       `;
@@ -761,8 +735,8 @@
     } else if (autoState === 'complete') {
       el.innerHTML = `
         <div style="max-width:680px; margin:0 auto; display:flex; justify-content:flex-end; gap:var(--space-sm);">
-          <button class="btn btn-sm btn-ghost" onclick="autoReset()">重新开始</button>
-          <button class="btn btn-primary btn-sm" onclick="contentSaveDraft()">保存草稿 →</button>
+          <button class="btn btn-sm btn-ghost" data-action="auto-reset">重新开始</button>
+          <button class="btn btn-primary btn-sm" data-action="save-draft">保存草稿 →</button>
         </div>
       `;
     }
@@ -779,7 +753,7 @@
     app.setStatus('AI 生成中...');
 
     abortStream = api.stream(
-      '/api/writing/generate',
+      '/api/content/generate',
       { mode, context },
       (chunk) => {
         fullText += chunk.text || '';
@@ -801,7 +775,7 @@
 
   // ========== Script wizard steps ==========
 
-  window.contentScriptStep0 = function () {
+  function contentScriptStep0() {
     const inputEl = document.getElementById('writing-pov-input');
     const pov = inputEl ? inputEl.value.trim() : '';
     if (!pov) { app.setStatus('请先输入你的核心观点'); return; }
@@ -812,7 +786,7 @@
     renderInputArea();
   };
 
-  window.contentScriptStep1 = function () {
+  function contentScriptStep1() {
     const inputEl = document.getElementById('writing-script-input');
     const scriptText = inputEl ? inputEl.value.trim() : '';
     if (!scriptText) { app.setStatus('请先粘贴口播稿文本'); return; }
@@ -826,7 +800,7 @@
     });
   };
 
-  window.contentScriptStep2 = function () {
+  function contentScriptStep2() {
     addMessage('user', '请基于以上分析，提炼可迁移的结构骨架', '提炼骨架');
     streamGenerate('script_step2', { step1Result }, '提炼骨架', 'Step 2 — 结构骨架', (result) => {
       step2Result = result;
@@ -836,7 +810,7 @@
     });
   };
 
-  window.contentScriptStep3 = function () {
+  function contentScriptStep3() {
     const topicEl = document.getElementById('writing-new-topic');
     const topic = topicEl ? topicEl.value.trim() : '';
     if (!topic) { app.setStatus('请输入新主题'); return; }
@@ -848,25 +822,14 @@
     });
   };
 
-  // ========== Topics mode ==========
-
-  window.contentGenerateTopics = function () {
-    const inputEl = document.getElementById('writing-topics-input');
-    const topic = inputEl ? inputEl.value.trim() : '';
-    if (!topic) { app.setStatus('请输入主题方向'); return; }
-    addMessage('user', topic, '主题方向');
-    if (inputEl) inputEl.value = '';
-    streamGenerate('topics_4a', { topic }, '主题方向', '4A 选题生成', null);
-  };
-
   // ========== Auto mode functions ==========
 
-  window.autoSetType = function (type) {
+  function autoSetType(type) {
     autoContentType = type;
     renderInputArea();
   };
 
-  window.autoStartResearch = function () {
+  function autoStartResearch() {
     const povEl = document.getElementById('auto-pov-input');
     const pov = povEl ? povEl.value.trim() : '';
     const topicEl = document.getElementById('auto-topic-input');
@@ -887,7 +850,7 @@
     });
   };
 
-  window.autoPickTier = function (tier) {
+  function autoPickTier(tier) {
     autoTier = tier;
     const tierLabels = { A: '精炼版', B: '标准版', C: '深度版', D: '长文版', '短': '短版', '中': '中版', '长': '长版' };
     addMessage('user', `选择档位：${tier} ${tierLabels[tier] || ''}`, '档位选择');
@@ -902,7 +865,7 @@
     });
   };
 
-  window.autoStartDraft = function () {
+  function autoStartDraft() {
     const noteEl = document.getElementById('auto-adjust-note');
     const adjustNote = noteEl ? noteEl.value.trim() : '';
     addMessage('user', adjustNote || '确认大纲，开始写作', adjustNote ? '调整意见' : '确认写作');
@@ -917,7 +880,7 @@
     });
   };
 
-  window.autoStartReview = function () {
+  function autoStartReview() {
     addMessage('user', '请对草稿进行 7 维度审核', '开始审核');
     autoState = 'reviewing';
     updateStepIndicator();
@@ -930,7 +893,7 @@
     });
   };
 
-  window.autoGenerateFinal = function () {
+  function autoGenerateFinal() {
     addMessage('user', '根据审核建议，生成终稿', '生成终稿');
     autoState = 'finalizing';
     updateStepIndicator();
@@ -942,7 +905,7 @@
     });
   };
 
-  window.autoReset = function () {
+  function autoReset() {
     autoState = 'idle';
     autoPOV = '';
     autoTopic = '';
@@ -957,7 +920,7 @@
 
   // ========== Save draft ==========
 
-  window.contentSaveDraft = async function () {
+  async function contentSaveDraft() {
     let content = '';
 
     if (currentMode === 'bottomup') {
@@ -979,14 +942,14 @@
     if (!content) { app.setStatus('暂无内容可保存'); return; }
 
     const modeLabels = {
-      bottomup: '素材驱动', script: '口播稿', topics: '自媒体主题', auto: '自动化写作'
+      bottomup: '素材驱动', script: '口播稿', auto: '自动化写作'
     };
     const now = new Date();
     const dateStr = `${now.getMonth() + 1}月${now.getDate()}日 ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
 
     try {
       app.setStatus('保存中...');
-      await api.post('/api/writing/drafts', {
+      await api.post('/api/content/drafts', {
         title: `${modeLabels[currentMode] || '创作'} ${dateStr}`,
         content,
         type: modeLabels[currentMode] || '草稿',

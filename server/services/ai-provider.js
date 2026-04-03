@@ -14,10 +14,6 @@ const PROVIDERS = {
   'anthropic-api': {
     module: './providers/anthropic',
     requiredEnv: ['ANTHROPIC_API_KEY']
-  },
-  'openai-api': {
-    module: './providers/openai',
-    requiredEnv: ['OPENAI_API_KEY']
   }
 };
 
@@ -46,13 +42,7 @@ let provider;
 try {
   provider = require(config.module);
 } catch (err) {
-  if (PROVIDER === 'openai-api') {
-    console.error(`[ai-provider] OpenAI provider not yet available.`);
-    console.error(`[ai-provider] Install the openai package: npm install openai`);
-    console.error(`[ai-provider] Or use AI_PROVIDER=anthropic-api instead.`);
-  } else {
-    console.error(`[ai-provider] Failed to load provider "${PROVIDER}": ${err.message}`);
-  }
+  console.error(`[ai-provider] Failed to load provider "${PROVIDER}": ${err.message}`);
   process.exit(1);
 }
 
