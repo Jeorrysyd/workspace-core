@@ -7,10 +7,13 @@ node_modules/
 data/*
 !data/demo/
 
-# Claude Code internal
-.claude/projects/
-.claude/backups/
-.claude/shell-snapshots/
-.claude/.claude.json
-.claude/plans/
-.claude/knowledge/
+# Runtime content (personal, not committed)
+knowledge/
+PROJECT_STATE.md
+CEO-REVIEW-*.html
+visualize.html
+scripts/
+
+# Claude Code internal (entire directory)
+.claude/
+

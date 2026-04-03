@@ -64,13 +64,82 @@ npm start
 | `anthropic-api` | Set `ANTHROPIC_API_KEY` in `.env` | API users, Docker deployment |
 | `openai-api` | Set `OPENAI_API_KEY` in `.env` | Community-maintained, GPT models |
 
-## Rooms
+## How to Use
 
-- **Archive** — Browse and search your markdown notes, upload voice recordings for transcription
-- **Content** — AI-powered topic research, script writing, content optimization
-- **Podcast** — Analyze podcast episodes, full audio player with timeline sync
-- **Dialogue** — Self-exploration with slash commands (`/drift`, `/trace`, `/challenge`, etc.)
-- **Builders** — AI agent workflows and content automation
+### First time? Try these:
+
+1. **Go to Dialogue** and type `/drift` — the AI will surface thoughts you didn't know you were having
+2. **Go to Content**, pick "From Idea", type any topic — the AI researches and drafts for you
+3. **Set `NOTES_DIR`** in `.env` to point at your markdown notes folder, then open Archive to browse them
+
+### Typical workflow
+
+```
+Your notes/ideas
+       |
+   [Archive] ──────► [Content] ──► Draft / Script / Article
+       |                  ▲
+       |                  |
+   [Dialogue]      [Builders Digest]
+   /drift            AI trends
+   /challenge        send to Content
+```
+
+---
+
+## Rooms Guide
+
+### Archive (档案馆)
+
+Your personal knowledge base. Import markdown notes, search across them, and build an AI-generated profile of your thinking patterns.
+
+- **Setup**: Set `NOTES_DIR` in `.env` to your notes folder (Obsidian, Logseq, or plain markdown)
+- **Features**: Full-text search, date filtering, AI profile generation
+- **Cross-room**: Send any note to Content (for writing) or Dialogue (for exploration)
+- **Voice upload**: Record or upload audio → Whisper transcription → auto-categorized note
+
+### Content (创作)
+
+AI-powered writing room with two starting paths:
+
+| Path | How it works |
+|------|-------------|
+| **From Notes** | Scans your recent notes, discovers writing material, generates topic ideas |
+| **From Idea** | You input a topic/opinion, AI researches it, generates outline and draft |
+
+Also includes:
+- **Topic brainstorming** — divergent thinking across multiple angles
+- **Script analysis** — analyze and optimize voiceover/video scripts
+
+### Podcast (播客)
+
+Full podcast analysis pipeline: subscribe to RSS feeds, auto-transcribe with Deepgram, and get AI-generated summaries with timeline markers.
+
+- **Setup**: Set `PODCAST_DIR` in `.env` (requires [podcast-analyze](https://github.com/jeorrysyd/podcast-analyze) project)
+- **Features**: Audio player with seeking, AI timeline extraction, note-taking synced to timestamps
+
+### Dialogue (对话)
+
+Self-exploration through AI conversation. Seven slash commands, each designed for a different mode of thinking:
+
+| Command | Name | What it does |
+|---------|------|-------------|
+| `/drift` | Undercurrent | Surfaces thoughts you didn't know you were having |
+| `/dayopen` | Morning | Clears your mind, AI helps plan today's priorities |
+| `/trace` | Origin | Traces how an idea evolved over time |
+| `/challenge` | Challenge | Stress-tests a belief or assumption |
+| `/ghost` | Voice | AI answers questions in your voice/style |
+| `/aiview` | AI Views | Records and tracks your evolving views on AI |
+| `/roundtable` | Roundtable | Hosts a discussion with AI thought partners |
+
+The AI reads your memory and recent notes for full context in every conversation.
+
+### Builders (AI Builders Digest)
+
+Tracks top AI builders on X/Twitter and YouTube podcasts, generating daily digests of what's happening in the AI builder community.
+
+- Click **"Generate Digest"** to fetch and summarize the latest
+- Send digests to Content room for further writing
 
 ## Configuration
 

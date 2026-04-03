@@ -15,9 +15,10 @@ const claude = require('../services/ai-provider');
 
 const router = express.Router();
 
-// Paths — 从 .env PODCAST_DIR 读取，支持 ~ 展开；未配置时回退到 ~/Desktop/podcast-analyze
+// Paths — read from .env PODCAST_DIR; disabled if not configured
 function resolvePodcastProject() {
-  const raw = process.env.PODCAST_DIR || '~/Desktop/podcast-analyze';
+  const raw = process.env.PODCAST_DIR;
+  if (!raw) return null;
   return raw.startsWith('~')
     ? require('path').join(process.env.HOME, raw.slice(1))
     : require('path').resolve(raw);
@@ -169,7 +170,7 @@ async function runFullPipeline(customUrl) {
   refreshState.step = '同步订阅配置...';
   refreshLog('Step 1: 同步订阅到 podcast-analyze');
 
-  // Sync workspace j subscriptions → podcast-analyze config
+  // Sync workspace subscriptions → podcast-analyze config
   if (!customUrl) {
     const subs = loadSubscriptions();
     if (subs.channels && subs.channels.length > 0) {

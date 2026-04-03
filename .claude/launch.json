@@ -3,9 +3,13 @@
   "configurations": [
     {
       "name": "AI 工作台 (workspace-core)",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["start"],
-      "port": 3456
+      "runtimeExecutable": "/usr/local/bin/node",
+      "runtimeArgs": ["server/index.js"],
+      "port": 3456,
+      "autoPort": true,
+      "env": {
+        "PATH": "/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin"
+      }
     },
     {
       "name": "podcast-analyze-web",
