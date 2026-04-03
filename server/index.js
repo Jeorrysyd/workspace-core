@@ -21,9 +21,10 @@ const APP_NAME = process.env.APP_NAME || 'AI 工作台';
 
 // Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? 'http://localhost:3456'
-    : ['http://localhost:3456', 'http://127.0.0.1:3456']
+  origin: process.env.CORS_ORIGIN || [
+    `http://localhost:${PORT}`,
+    `http://127.0.0.1:${PORT}`
+  ]
 }));
 app.use(express.json({ limit: '10mb' }));
 

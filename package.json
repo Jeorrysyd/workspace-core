@@ -3,10 +3,13 @@
   "version": "1.0.0",
   "description": "AI Content Workspace — configurable personal knowledge & content platform",
   "main": "server/index.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "start": "node server/index.js",
     "dev": "nodemon server/index.js --watch server/",
-    "sync-kb": "node scripts/sync-kb-to-obsidian.js"
+    "sync-kb": "echo 'Script removed — see skills/'"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
