@@ -66,6 +66,9 @@
     currentStep = idx;
     project.currentStep = idx + 1;
     render();
+    // Re-trigger step fade animation
+    const el = view.querySelector('.step-content');
+    if (el) { el.style.animation = 'none'; el.offsetHeight; el.style.animation = ''; }
   }
 
   function abortStream() {
@@ -105,7 +108,6 @@
       <div class="pipeline-header">
         <button class="btn btn-ghost" data-action="back-to-list">← 项目列表</button>
         <input class="pipeline-title-input" value="${shared.escHtml(project.title)}" data-action="edit-title" placeholder="项目标题">
-        <button class="btn btn-ghost" data-action="save-project">保存</button>
       </div>
 
       <div class="step-bar">
@@ -174,9 +176,7 @@
           <button class="btn btn-primary" data-action="discover" data-mode="trace">开始追踪</button>
         </div>
 
-        <div class="output-area" id="discover-output">
-          ${hasResult ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.discover)}</div>` : ''}
-        </div>
+        <div class="output-area" id="discover-output">${hasResult ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.discover)}</div>` : ''}</div>
       </div>
     `;
   }
@@ -201,9 +201,7 @@
           </div>
         </div>
 
-        <div class="output-area" id="select-output">
-          ${hasResult?.result ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.select.result)}</div>` : ''}
-        </div>
+        <div class="output-area" id="select-output">${hasResult?.result ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.select.result)}</div>` : ''}</div>
       </div>
     `;
   }
@@ -242,9 +240,7 @@
           </div>
         </details>
 
-        <div class="output-area" id="angle-output">
-          ${hasResult?.result ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.angle.result)}</div>` : ''}
-        </div>
+        <div class="output-area" id="angle-output">${hasResult?.result ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.angle.result)}</div>` : ''}</div>
       </div>
     `;
   }
@@ -276,9 +272,7 @@
           <button class="btn btn-primary" data-action="run-create">生成内容</button>
         </div>
 
-        <div class="output-area" id="create-output">
-          ${hasResult?.content ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.create.content)}</div>` : ''}
-        </div>
+        <div class="output-area" id="create-output">${hasResult?.content ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.create.content)}</div>` : ''}</div>
       </div>
     `;
   }
@@ -294,14 +288,11 @@
 
         <div class="input-group">
           <button class="btn btn-primary" data-action="run-review">📊 7D 质量审计</button>
-          <button class="btn btn-ghost" data-action="run-final">🔧 生成终稿</button>
-          <button class="btn btn-ghost" data-action="save-draft">💾 保存为草稿</button>
+          <button class="btn btn-secondary" data-action="run-final">🔧 生成终稿</button>
+          <button class="btn btn-secondary" data-action="save-draft">💾 保存为草稿</button>
         </div>
 
-        <div class="output-area" id="polish-output">
-          ${hasResult?.review ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.polish.review)}</div>` : ''}
-          ${hasResult?.final ? `<hr style="margin:var(--space-md) 0"><div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.polish.final)}</div>` : ''}
-        </div>
+        <div class="output-area" id="polish-output">${hasResult?.review ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.polish.review)}</div>` : ''}${hasResult?.final ? `<hr style="margin:var(--space-md) 0"><div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.polish.final)}</div>` : ''}</div>
       </div>
     `;
   }
@@ -340,6 +331,11 @@
     if (action === 'abort') { abortStream(); updateStepButtons(); return; }
     if (action === 'load-project') { loadProject(btn.dataset.id); return; }
     if (action === 'delete-project') { deleteProject(btn.dataset.id); return; }
+
+    // Setup wizard
+    if (action === 'setup-pick') { showSetupForm(btn.dataset.provider); return; }
+    if (action === 'setup-submit') { submitSetup('anthropic-api'); return; }
+    if (action === 'setup-submit-cli') { submitSetup('claude-cli'); return; }
 
     // Step 1: Discover
     if (action === 'set-range') {
@@ -531,11 +527,119 @@
     }
   }
 
+  // ── Setup Wizard ───────────────────────────────────────────────────────────
+
+  function renderSetupWizard(hint) {
+    return `
+      <div class="setup-wizard">
+        <div class="setup-header">
+          <h2>欢迎使用内容生产线</h2>
+          <p class="text-secondary">开始之前，需要连接一个 AI 服务</p>
+        </div>
+
+        <div class="setup-cards">
+          <div class="setup-card" data-action="setup-pick" data-provider="anthropic-api">
+            <div class="setup-card-icon">🔑</div>
+            <div class="setup-card-title">API Key</div>
+            <div class="setup-card-desc">粘贴一个 Anthropic API Key 即可使用（推荐）</div>
+          </div>
+          <div class="setup-card" data-action="setup-pick" data-provider="claude-cli">
+            <div class="setup-card-icon">💻</div>
+            <div class="setup-card-title">Claude CLI</div>
+            <div class="setup-card-desc">需要安装 Claude Code CLI（进阶）</div>
+          </div>
+        </div>
+
+        <div class="setup-form" id="setup-form" style="display:none"></div>
+
+        ${hint ? `<p class="text-sm text-tertiary" style="margin-top:var(--space-md)">当前状态：${shared.escHtml(hint)}</p>` : ''}
+      </div>
+    `;
+  }
+
+  function showSetupForm(provider) {
+    const formEl = view.querySelector('#setup-form');
+    if (!formEl) return;
+
+    // Highlight selected card
+    view.querySelectorAll('.setup-card').forEach(c => {
+      c.classList.toggle('selected', c.dataset.provider === provider);
+    });
+
+    if (provider === 'anthropic-api') {
+      formEl.style.display = '';
+      formEl.innerHTML = `
+        <label class="text-sm text-secondary">粘贴你的 Anthropic API Key</label>
+        <input class="input setup-input" id="setup-api-key" type="password" placeholder="sk-ant-..." autocomplete="off" />
+        <p class="text-xs text-tertiary">获取方式：<a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> → API Keys → Create Key</p>
+        <button class="btn btn-primary" data-action="setup-submit" style="margin-top:var(--space-sm)">完成配置 ✓</button>
+        <div id="setup-msg"></div>
+      `;
+    } else {
+      formEl.style.display = '';
+      formEl.innerHTML = `
+        <div class="setup-cli-guide">
+          <p class="text-sm">安装 Claude Code CLI：</p>
+          <code class="setup-code">npm install -g @anthropic-ai/claude-code</code>
+          <p class="text-sm text-secondary" style="margin-top:var(--space-sm)">安装完成后刷新此页面</p>
+          <button class="btn btn-primary" data-action="setup-submit-cli" style="margin-top:var(--space-sm)">我已安装，保存配置</button>
+          <div id="setup-msg"></div>
+        </div>
+      `;
+    }
+  }
+
+  async function submitSetup(provider) {
+    const msgEl = view.querySelector('#setup-msg');
+    let apiKey = '';
+
+    if (provider === 'anthropic-api') {
+      apiKey = (view.querySelector('#setup-api-key') || {}).value || '';
+      if (!apiKey.startsWith('sk-')) {
+        if (msgEl) msgEl.innerHTML = '<p class="text-danger text-sm">请输入有效的 API Key（以 sk- 开头）</p>';
+        return;
+      }
+    }
+
+    if (msgEl) msgEl.innerHTML = '<p class="text-sm text-secondary">保存中...</p>';
+
+    try {
+      const result = await api.post('/api/setup', { provider, apiKey });
+      if (result.success) {
+        if (msgEl) msgEl.innerHTML = `
+          <div class="setup-success">
+            <p>✓ 配置已保存</p>
+            <p class="text-sm text-secondary">正在重新加载...</p>
+          </div>
+        `;
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    } catch (err) {
+      if (msgEl) msgEl.innerHTML = `<p class="text-danger text-sm">配置失败: ${shared.escHtml(err.message)}</p>`;
+    }
+  }
+
   // ── Project List ──────────────────────────────────────────────────────────
 
   async function loadProjectList() {
     const listEl = view.querySelector('#project-list');
     if (!listEl) return;
+
+    // Check AI readiness first
+    try {
+      const config = await api.get('/api/config');
+      if (!config.aiReady) {
+        // Replace entire container with setup wizard
+        const container = view.querySelector('.pipeline-container');
+        if (container) {
+          container.innerHTML = renderSetupWizard(config.aiHint);
+        }
+        return;
+      }
+    } catch (e) {
+      // Config fetch failed, continue to show project list normally
+    }
+
     try {
       const { projects } = await api.get('/api/pipeline/projects');
       if (projects.length === 0) {

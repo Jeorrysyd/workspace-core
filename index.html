@@ -3,23 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Content Pipeline</title>
+  <title>AI 内容生产线</title>
   <link rel="stylesheet" href="/css/base.css">
 </head>
 <body>
   <div class="app-layout">
-    <!-- Sidebar -->
-    <aside class="sidebar">
-      <div class="sidebar-header" id="sidebar-home" style="cursor:pointer;" title="回到首页">
-        <h2 id="app-owner-name">AI</h2>
-        <div class="subtitle" id="app-subtitle">Content Pipeline</div>
+    <header class="topbar">
+      <h1 class="topbar-title" id="app-title">AI 内容生产线</h1>
+      <div class="topbar-right">
+        <span id="clock"></span>
       </div>
-      <nav class="sidebar-nav" id="sidebar-nav">
-        <!-- Nav items injected by app.js -->
-      </nav>
-    </aside>
+    </header>
 
-    <!-- Main -->
     <main class="main-content">
       <div class="module-container" id="module-container">
         <!-- Pipeline module injected here -->
@@ -32,7 +27,6 @@
         </div>
         <div class="statusbar-right">
           <span id="memory-count"></span>
-          <span id="clock"></span>
         </div>
       </div>
     </main>

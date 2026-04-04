@@ -1,15 +1,17 @@
 /**
  * AI Provider — unified entry point
  * Reads AI_PROVIDER from .env and returns the matching provider.
- * Validates required env vars at startup (provider-conditional).
+ * Gracefully handles missing config (returns stub provider for setup wizard).
  */
+
+const { execSync } = require('child_process');
 
 const PROVIDER = (process.env.AI_PROVIDER || 'claude-cli').toLowerCase();
 
 const PROVIDERS = {
   'claude-cli': {
     module: './providers/claude-cli',
-    requiredEnv: [] // Uses Claude Code subscription, no API key needed
+    requiredEnv: []
   },
   'anthropic-api': {
     module: './providers/anthropic',
@@ -17,35 +19,59 @@ const PROVIDERS = {
   }
 };
 
-// --- Startup validation ---
+// --- Readiness check ---
+
+let ready = false;
+let hint = '';
+let provider = null;
 
 const config = PROVIDERS[PROVIDER];
 
 if (!config) {
-  console.error(`[ai-provider] Unknown AI_PROVIDER: "${PROVIDER}"`);
-  console.error(`[ai-provider] Valid options: ${Object.keys(PROVIDERS).join(', ')}`);
-  console.error(`[ai-provider] Set AI_PROVIDER in your .env file.`);
-  process.exit(1);
-}
+  hint = `未知的 AI_PROVIDER: "${PROVIDER}"，有效选项: ${Object.keys(PROVIDERS).join(', ')}`;
+  console.warn(`[ai-provider] ${hint}`);
+} else {
+  // Check required env vars
+  const missing = config.requiredEnv.filter(v => {
+    const val = process.env[v];
+    return !val || val === '在这里粘贴你的key' || val.startsWith('sk-ant-EXAMPLE');
+  });
 
-for (const envVar of config.requiredEnv) {
-  if (!process.env[envVar]) {
-    console.error(`[ai-provider] Missing required env var: ${envVar}`);
-    console.error(`[ai-provider] AI_PROVIDER="${PROVIDER}" requires ${envVar} to be set in .env`);
-    process.exit(1);
+  if (missing.length > 0) {
+    hint = `需要设置 ${missing.join(', ')}`;
+    console.warn(`[ai-provider] ${hint}`);
+  } else if (PROVIDER === 'claude-cli') {
+    // Check if claude CLI is available
+    try {
+      execSync('which claude', { stdio: 'ignore' });
+      ready = true;
+    } catch {
+      hint = '未找到 claude 命令。请安装 Claude Code CLI 或切换到 API Key 模式';
+      console.warn(`[ai-provider] ${hint}`);
+    }
+  } else {
+    ready = true;
+  }
+
+  // Load provider (even if not ready, for when user fixes config)
+  if (ready) {
+    try {
+      provider = require(config.module);
+    } catch (err) {
+      ready = false;
+      hint = `加载 provider 失败: ${err.message}`;
+      console.warn(`[ai-provider] ${hint}`);
+    }
   }
 }
 
-// --- Load provider ---
-
-let provider;
-try {
-  provider = require(config.module);
-} catch (err) {
-  console.error(`[ai-provider] Failed to load provider "${PROVIDER}": ${err.message}`);
-  process.exit(1);
+if (ready) {
+  console.log(`[ai-provider] Using provider: ${PROVIDER} ✓`);
+} else {
+  console.log(`[ai-provider] AI not ready — setup wizard will show`);
 }
 
-console.log(`[ai-provider] Using provider: ${PROVIDER}`);
-
-module.exports = provider;
+module.exports = provider || {};
+module.exports.aiReady = ready;
+module.exports.aiProvider = PROVIDER;
+module.exports.aiHint = hint;

@@ -7,7 +7,6 @@
     modules: {},
     currentModule: null,
     container: document.getElementById('module-container'),
-    nav: document.getElementById('sidebar-nav'),
     _listeners: {},
 
     // ── Event Bus ──────────────────────────────────────────────────────────
@@ -30,7 +29,6 @@
 
     register(name, module) {
       this.modules[name] = module;
-      this._addNavItem(name, module);
 
       const view = document.createElement('div');
       view.className = 'module-view';
@@ -59,10 +57,6 @@
       const newView = document.getElementById(`module-${name}`);
       if (newView) newView.classList.add('active');
       if (this.modules[name].show) this.modules[name].show();
-
-      this.nav.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.toggle('active', item.dataset.module === name);
-      });
     },
 
     setStatus(text) {
@@ -73,18 +67,6 @@
           if (el && el.textContent === text) el.textContent = 'Ready';
         }, 3000);
       }
-    },
-
-    _addNavItem(name, module) {
-      const item = document.createElement('div');
-      item.className = 'nav-item';
-      item.dataset.module = name;
-      item.innerHTML = `
-        <span class="nav-icon">${module.icon || ''}</span>
-        <span class="nav-label">${module.name}</span>
-      `;
-      item.addEventListener('click', () => this.navigate(name));
-      this.nav.appendChild(item);
     },
 
     _init() {
@@ -100,11 +82,11 @@
       // Load config from server
       api.get('/api/config').then(config => {
         if (!config) return;
-        if (config.ownerName) {
-          const el = document.getElementById('app-owner-name');
-          if (el) el.textContent = config.ownerName;
+        if (config.appName) {
+          document.title = config.appName;
+          const el = document.getElementById('app-title');
+          if (el) el.textContent = config.appName;
         }
-        if (config.appName) document.title = config.appName;
       }).catch(() => {});
     }
   };
