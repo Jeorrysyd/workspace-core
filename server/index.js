@@ -1,21 +1,16 @@
 /**
- * AI 工作台 — Backend Server
- * 应用名称和个人信息通过 .env 配置，不硬编码
+ * AI Content Pipeline — Backend Server
  */
 require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
 
-const archiveRoutes = require('./routes/archive');
-const chatRoutes = require('./routes/chat');
-const dispatchRoutes = require('./routes/dispatch');
-const buildersRoutes = require('./routes/builders');
-const contentRoutes = require('./routes/content');
+const pipelineRoutes = require('./routes/pipeline');
 
 const app = express();
 const PORT = process.env.PORT || 3456;
-const APP_NAME = process.env.APP_NAME || 'AI 工作台';
+const APP_NAME = process.env.APP_NAME || 'AI Content Pipeline';
 
 // Middleware
 app.use(cors({
@@ -29,17 +24,13 @@ app.use(express.json({ limit: '10mb' }));
 // Static files — serve frontend from project root
 app.use(express.static(path.join(__dirname, '..')));
 
-// API routes
-app.use('/api/archive', archiveRoutes);
-app.use('/api/chat', chatRoutes);
-app.use('/api/dispatch', dispatchRoutes);
-app.use('/api/builders', buildersRoutes);
-app.use('/api/content', contentRoutes);
+// API routes — unified pipeline
+app.use('/api/pipeline', pipelineRoutes);
 
-// Config endpoint — 前端通过此接口获取 APP_NAME / OWNER_NAME，无需硬编码在 HTML 里
+// Config endpoint
 app.get('/api/config', (req, res) => {
   res.json({
-    appName: process.env.APP_NAME || 'AI 工作台',
+    appName: process.env.APP_NAME || 'AI Content Pipeline',
     ownerName: process.env.OWNER_NAME || '用户'
   });
 });
