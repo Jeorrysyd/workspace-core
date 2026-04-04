@@ -166,9 +166,6 @@
 
   function renderDiscover() {
     const hasResult = project.discover;
-    const showTimeRange = selectedMode === 'notes' || selectedMode === 'feed';
-    const showTrace = selectedMode === 'trace';
-    const showStart = selectedMode && selectedMode !== 'trace';
     return `
       <div class="step-section">
         <h3>🔍 发现选题</h3>
@@ -178,25 +175,35 @@
           <button class="btn ${selectedMode === 'notes' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="notes">📝 从笔记发现</button>
           <button class="btn ${selectedMode === 'feed' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="feed">🌐 从外部信息源</button>
           <button class="btn ${selectedMode === 'drift' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="drift">💭 自由发散</button>
+          <button class="btn ${selectedMode === 'trace' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="trace">🔎 追踪主题</button>
         </div>
 
-        <div class="discover-options" id="discover-options" style="display:${showTimeRange ? '' : 'none'}">
+        <div class="discover-options" id="discover-options" style="display:${selectedMode === 'notes' ? '' : 'none'}">
           <label class="text-sm text-secondary">时间范围</label>
           <div class="time-range-group">
             ${['24h', '3d', '7d', '14d', '30d'].map(r => `
               <button class="btn btn-sm ${r === selectedRange ? 'btn-primary' : 'btn-ghost'}" data-action="set-range" data-range="${r}">${r}</button>
             `).join('')}
           </div>
+          <div style="margin-top:var(--space-sm)">
+            <button class="btn btn-primary" data-action="start-discover">开始扫描</button>
+          </div>
         </div>
 
-        <div class="discover-trace" id="discover-trace" style="display:${showTrace ? '' : 'none'}">
+        <div id="discover-feed-start" style="display:${selectedMode === 'feed' ? '' : 'none'}; margin-top:var(--space-sm)">
+          <p class="text-sm text-secondary">扫描 AI 行业领袖的最新动态，发现信息差选题</p>
+          <button class="btn btn-primary" data-action="start-discover">开始发现</button>
+        </div>
+
+        <div id="discover-drift-start" style="display:${selectedMode === 'drift' ? '' : 'none'}; margin-top:var(--space-sm)">
+          <p class="text-sm text-secondary">扫描近期笔记中反复出现但从未写成内容的暗流主题</p>
+          <button class="btn btn-primary" data-action="start-discover">开始探索</button>
+        </div>
+
+        <div class="discover-trace" id="discover-trace" style="display:${selectedMode === 'trace' ? '' : 'none'}">
           <label class="text-sm text-secondary">追踪关键词</label>
           <input class="input" id="trace-keyword" placeholder="输入要追踪的主题..." />
           <button class="btn btn-primary" data-action="start-discover">开始追踪</button>
-        </div>
-
-        <div id="discover-start" style="display:${showStart ? '' : 'none'}; margin-top:var(--space-sm)">
-          <button class="btn btn-primary" data-action="start-discover">开始扫描</button>
         </div>
 
         <div class="output-area" id="discover-output">${hasResult ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.discover)}</div>` : ''}</div>
@@ -288,7 +295,7 @@
               ['academic', '🎓 学术风格'],
               ['pitch', '💼 商业方案']
             ].map(([id, label]) => `
-              <button class="format-btn ${(hasResult?.format || 'article') === id ? 'active' : ''}" data-action="set-format" data-format="${id}">${label}</button>
+              <button class="format-btn ${selectedFormat === id ? 'active' : ''}" data-action="set-format" data-format="${id}">${label}</button>
             `).join('')}
           </div>
           <textarea class="textarea" id="create-adjust" rows="2" placeholder="额外调整意见（可选）"></textarea>
@@ -383,11 +390,13 @@
       selectedMode = mode;
       // Mutually exclusive panels
       const opts = view.querySelector('#discover-options');
+      const feedStart = view.querySelector('#discover-feed-start');
+      const driftStart = view.querySelector('#discover-drift-start');
       const trace = view.querySelector('#discover-trace');
-      const start = view.querySelector('#discover-start');
-      if (opts) opts.style.display = (mode === 'notes' || mode === 'feed') ? '' : 'none';
+      if (opts) opts.style.display = mode === 'notes' ? '' : 'none';
+      if (feedStart) feedStart.style.display = mode === 'feed' ? '' : 'none';
+      if (driftStart) driftStart.style.display = mode === 'drift' ? '' : 'none';
       if (trace) trace.style.display = mode === 'trace' ? '' : 'none';
-      if (start) start.style.display = (mode && mode !== 'trace') ? '' : 'none';
       // Highlight active mode button
       view.querySelectorAll('.discover-modes .btn').forEach(b => {
         b.classList.toggle('btn-primary', b.dataset.mode === mode);
@@ -456,11 +465,11 @@
       (err) => {
         streaming = false;
         abortFn = null;
-        updateStepButtons();
         if (err) {
           textEl.textContent = fullText + '\n\n⚠️ 生成出错: ' + err.message;
         }
         if (onDone) onDone(fullText);
+        updateStepButtons();
       }
     );
   }
@@ -472,6 +481,21 @@
     view.querySelectorAll('[data-action]').forEach(btn => {
       if (AI_ACTIONS.has(btn.dataset.action)) btn.disabled = streaming;
     });
+    // Show/hide "下一步" button based on step result
+    const nextBtn = view.querySelector('[data-action="next-step"]');
+    const shouldShowNext = currentStep < STEPS.length - 1 && hasStepResult(currentStep);
+    if (shouldShowNext && !nextBtn) {
+      const saveBtn = view.querySelector('[data-action="save-project"]');
+      if (saveBtn) {
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-primary';
+        btn.dataset.action = 'next-step';
+        btn.textContent = '下一步 →';
+        saveBtn.parentNode.insertBefore(btn, saveBtn);
+      }
+    } else if (!shouldShowNext && nextBtn) {
+      nextBtn.remove();
+    }
   }
 
   function runDiscover(mode) {
