@@ -1,16 +1,17 @@
-# AI Workspace (workspace-core) — Claude Code Guide
+# AI Content Pipeline (workspace-core) — Claude Code Guide
 
 ## Overview
 
-A configurable personal AI workspace with pluggable AI providers.
-All personalization is done via `.env` — zero hardcoded values in code.
+A content production pipeline that transforms personal notes into publishable content.
+5-step flow: Discover → Select → Angle → Create → Polish.
+All personalization via `.env` — zero hardcoded values.
 
 ## Setup
 
 ```bash
 cd workspace-core
 npm install
-cp .env.example .env   # Edit this file with your settings
+cp .env.example .env   # Edit with your settings
 npm start              # http://localhost:3456
 ```
 
@@ -26,18 +27,15 @@ Configurable via `AI_PROVIDER` in `.env`:
 Architecture:
 ```
 server/services/
-  ai-provider.js          # Factory — reads AI_PROVIDER, validates keys, exports provider
+  ai-provider.js          # Factory — reads AI_PROVIDER, exports provider
   providers/
     shared.js             # SSE utilities (startSSE, sendSSE, endSSE)
-    claude-cli.js         # Claude CLI provider (cleanEnv, spawn)
+    claude-cli.js         # Claude CLI provider
     anthropic.js          # Anthropic SDK provider (native streaming)
+  storage.js              # File-based project/draft storage
+  notes.js                # Markdown notes reader (NOTES_DIR)
+  memory.js               # Personal memory store
 ```
-
-Key rules:
-- `allowedTools` (e.g. WebSearch) only works with `claude-cli`, silently ignored by API providers
-- `streamConversation` uses native messages array for API providers (no string flattening)
-- `cleanEnv()` only in `claude-cli.js` — strips CLAUDECODE env to prevent recursion
-- Missing API key → `process.exit(1)` with clear message (not a stack trace)
 
 ## .env Variables
 
@@ -45,7 +43,7 @@ Key rules:
 AI_PROVIDER=claude-cli        # claude-cli | anthropic-api
 ANTHROPIC_API_KEY=            # Required if AI_PROVIDER=anthropic-api
 PORT=3456
-APP_NAME=AI Workspace         # Shown in UI header
+APP_NAME=AI Content Pipeline  # Shown in UI header
 OWNER_NAME=User               # Injected into AI prompts
 NOTES_DIR=~/path/to/notes     # Markdown notes folder (optional)
 ```
@@ -55,67 +53,93 @@ NOTES_DIR=~/path/to/notes     # Markdown notes folder (optional)
 ```
 workspace-core/
 ├── .env.example              # Configuration template
-├── index.html                # Main shell
-├── css/base.css              # Design system
+├── index.html                # Main shell (single page)
+├── css/base.css              # Design system + Pipeline UI styles
 ├── js/
 │   ├── shared.js             # Shared UI utilities (escHtml, addMessage, formatDate)
-│   ├── app.js                # Core: module registry + event bus + routing
+│   ├── app.js                # Core: module registry + event bus
 │   └── api.js                # HTTP client + SSE streaming
 ├── modules/
-│   ├── archive/index.js      # Archive room (notes + memory + profile)
-│   ├── content/index.js      # Content/writing room (3 modes)
-│   ├── dialogue/index.js     # Dialogue room (self-exploration)
-│   └── builders/index.js     # AI Builders Digest
+│   └── pipeline/
+│       └── index.js          # Pipeline module (5-step UI, project management)
 ├── server/
 │   ├── index.js              # Express entry + /api/config
 │   ├── routes/
-│   │   ├── archive.js        # Notes, memory, profile endpoints
-│   │   ├── content.js        # Bottom-up pipeline + generate + drafts CRUD
-│   │   ├── chat.js           # Dialogue + roundtable endpoints
-│   │   ├── builders.js       # Builders digest endpoints
-│   │   └── dispatch.js       # Smart routing (keyword matching)
-│   └── services/
-│       ├── ai-provider.js    # Provider factory
-│       ├── providers/        # claude-cli.js, anthropic.js, shared.js
-│       ├── notes.js          # Markdown notes service (reads NOTES_DIR)
-│       └── memory.js         # Personal memory store (data/memory/)
+│   │   └── pipeline.js       # All pipeline API (projects CRUD + 5 steps + sources + drafts)
+│   ├── services/
+│   │   ├── ai-provider.js    # Provider factory
+│   │   ├── providers/        # claude-cli.js, anthropic.js, shared.js
+│   │   ├── storage.js        # File-based project/draft storage
+│   │   ├── notes.js          # Markdown notes service (reads NOTES_DIR)
+│   │   └── memory.js         # Personal memory store
+│   └── skills/               # Skill prompt files (analyze.md, topics.md, draft.md)
 └── data/                     # Runtime data (gitignored)
+    ├── projects/             # Pipeline projects (proj-{uuid}.json)
+    ├── drafts/               # Saved drafts (draft-{uuid}.json)
+    └── builders/             # Cached builder digests
 ```
 
-## Four Rooms
+## Pipeline (5 Steps)
 
-### Archive
-- Displays markdown notes from NOTES_DIR
-- AI-generated personality profile
-- Cross-room: send entries to Content or Dialogue
+### Step 1: Discover
+- Scans NOTES_DIR notes by time range
+- Fetches external feeds (X/Twitter builders)
+- Freeform exploration (drift) and idea tracking (trace)
+- Output: topic candidates list
 
-### Content (Writing)
-- Three modes: "From Notes" (bottom-up) | "From Idea" (auto) | "Script Analysis"
-- AI topic brainstorming, script generation, content optimization
-- Context-aware: reads NOTES_DIR notes + memory for AI prompts
-- Unified API: all endpoints under `/api/content/*`
+### Step 2: Select
+- Feasibility analysis of chosen topic
+- Audience, stance space, risk assessment
+- Output: confirmed topic + direction
 
-### Dialogue (Self-exploration)
-- Slash commands: /drift /dayopen /trace /challenge /roundtable
-- Full context: reads memory + recent notes for deep conversation
-- Roundtable: multi-persona AI discussions
+### Step 3: Angle
+- Generates angle card: hook, stance, evidence, skeleton
+- Challenge mode: stress-test your angle
+- Reference analysis: paste example content, extract structure
+- Output: complete angle card
 
-### Builders
-- AI builders digest — tracks top AI builders on X
-- Generate daily summaries, send to Content room
+### Step 4: Create
+- Multiple output formats: short-video, xiaohongshu, article, academic, pitch
+- AI generates content based on angle card
+- Output: full content draft
+
+### Step 5: Polish
+- 7D quality audit (readability, analogies, logic, quotes, AI-smell, hook, ending)
+- One-click polish to final draft
+- Save to drafts
+
+## API Endpoints
+
+```
+# Projects
+GET/POST        /api/pipeline/projects
+GET/PUT/DELETE  /api/pipeline/projects/:id
+
+# Pipeline Steps (all SSE streaming)
+POST  /api/pipeline/discover
+POST  /api/pipeline/select
+POST  /api/pipeline/angle
+POST  /api/pipeline/angle/challenge
+POST  /api/pipeline/angle/reference
+POST  /api/pipeline/create
+POST  /api/pipeline/polish
+
+# Sources
+GET   /api/pipeline/sources/notes
+GET   /api/pipeline/sources/feed
+
+# Drafts
+GET/POST        /api/pipeline/drafts
+PUT/DELETE      /api/pipeline/drafts/:id
+```
 
 ## Frontend Architecture
 
-- **No framework** — vanilla JS with module pattern (IIFE)
-- **Event delegation** — all click handlers use `data-action` attributes, no `window.*` globals
+- **No framework** — vanilla JS with IIFE module pattern
+- **Event delegation** — click handlers use `data-action` attributes
+- **Single module** — pipeline/index.js handles all UI
 - **Shared utilities** — `js/shared.js` provides escHtml, addMessage, formatDate
-- **Event bus** — `app.emit/on` for cross-room communication
-
-## External Dependencies
-
-All configured via `.env`:
-- **NOTES_DIR**: Markdown folder (read-only import)
-- **AI Provider**: Claude CLI subscription or API key
+- **SSE streaming** — `js/api.js` provides stream() for real-time AI output
 
 ## Skill Routing
 

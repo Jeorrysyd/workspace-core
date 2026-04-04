@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI 工作台</title>
+  <title>AI Content Pipeline</title>
   <link rel="stylesheet" href="/css/base.css">
 </head>
 <body>
@@ -12,51 +12,23 @@
     <aside class="sidebar">
       <div class="sidebar-header" id="sidebar-home" style="cursor:pointer;" title="回到首页">
         <h2 id="app-owner-name">AI</h2>
-        <div class="subtitle" id="app-subtitle">AI Content Workspace</div>
+        <div class="subtitle" id="app-subtitle">Content Pipeline</div>
       </div>
       <nav class="sidebar-nav" id="sidebar-nav">
-        <div class="nav-section-label">Rooms</div>
         <!-- Nav items injected by app.js -->
       </nav>
     </aside>
 
     <!-- Main -->
     <main class="main-content">
-      <!-- Dispatch entry view -->
-      <div id="dispatch-view" class="dispatch-view">
-        <div class="dispatch-content">
-          <h2 class="dispatch-title">今天想做什么？</h2>
-          <div class="dispatch-input-wrap">
-            <textarea id="dispatch-input" class="textarea" rows="1" placeholder="输入你的需求，AI 帮你路由到对的房间..." style="min-height:48px;max-height:120px;resize:none;"></textarea>
-            <button class="btn btn-primary" id="dispatch-send" style="height:48px;min-width:48px;padding:0;display:flex;align-items:center;justify-content:center;">
-              <svg viewBox="0 0 24 24" style="width:18px;height:18px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-            </button>
-          </div>
-          <div class="dispatch-chips" id="dispatch-chips">
-            <button class="dispatch-chip" data-target="archive">
-              <span class="dispatch-chip-icon">📁</span>我的档案
-            </button>
-            <button class="dispatch-chip" data-target="content">
-              <span class="dispatch-chip-icon">✍️</span>写点什么
-            </button>
-<button class="dispatch-chip" data-target="dialogue">
-              <span class="dispatch-chip-icon">💬</span>聊聊
-            </button>
-            <button class="dispatch-chip" data-target="builders">
-              <span class="dispatch-chip-icon">👁</span>Builders
-            </button>
-          </div>
-        </div>
-      </div>
-
       <div class="module-container" id="module-container">
-        <!-- Module views injected by each module -->
+        <!-- Pipeline module injected here -->
       </div>
 
       <!-- Status bar -->
       <div class="statusbar">
         <div class="statusbar-left">
-          <span><span class="status-dot"></span><span id="status-text">Agent is ready</span></span>
+          <span><span class="status-dot"></span><span id="status-text">Ready</span></span>
         </div>
         <div class="statusbar-right">
           <span id="memory-count"></span>
@@ -71,10 +43,7 @@
   <script src="/js/api.js"></script>
   <script src="/js/app.js"></script>
 
-  <!-- Modules -->
-  <script src="/modules/archive/index.js"></script>
-  <script src="/modules/content/index.js"></script>
-  <script src="/modules/dialogue/index.js"></script>
-  <script src="/modules/builders/index.js"></script>
+  <!-- Pipeline Module -->
+  <script src="/modules/pipeline/index.js"></script>
 </body>
 </html>
