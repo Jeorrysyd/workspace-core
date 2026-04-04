@@ -22,7 +22,6 @@
 
   function newProject() {
     project = {
-      id: null,
       title: '未命名项目',
       currentStep: 1,
       discover: null,

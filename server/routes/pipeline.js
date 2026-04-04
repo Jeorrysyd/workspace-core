@@ -9,6 +9,8 @@ const claude = require('../services/ai-provider');
 const notes = require('../services/notes');
 const storage = require('../services/storage');
 
+const { startSSE, sendSSE, endSSE } = require('../services/providers/shared');
+
 const router = express.Router();
 const OWNER_NAME = process.env.OWNER_NAME || '用户';
 
@@ -159,7 +161,11 @@ router.post('/discover', async (req, res) => {
     // Scan notes → analyze → generate topic candidates
     const notesList = collectNotes(range);
     if (notesList.length === 0) {
-      return res.json({ topics: [], message: `最近 ${range} 没有找到笔记` });
+      const notesDir = notes.getNotesDir ? notes.getNotesDir() : (process.env.NOTES_DIR || '未设置');
+      startSSE(res);
+      sendSSE(res, `⚠️ 在最近 ${range} 内没有找到笔记。\n\n当前笔记目录：${notesDir || '未设置'}\n\n请在 .env 文件中配置正确的 NOTES_DIR，指向你的 Markdown 笔记文件夹，然后重启服务器。`);
+      endSSE(res);
+      return;
     }
 
     const notesText = notesList.map(n => `--- ${n.name} ---\n${n.content}`).join('\n\n');

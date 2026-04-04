@@ -53,17 +53,17 @@ const storage = {
     const id = `proj-${crypto.randomUUID()}`;
     const now = new Date().toISOString();
     const project = {
-      id,
       title: data.title || '未命名项目',
       currentStep: data.currentStep || 1,
-      createdAt: now,
-      updatedAt: now,
       discover: null,
       select: null,
       angle: null,
       create: null,
       polish: null,
-      ...data
+      ...data,
+      id,           // always use server-generated id, never trust client's null
+      createdAt: now,
+      updatedAt: now,
     };
     await fsPromises.writeFile(projectPath(id), JSON.stringify(project, null, 2));
     return project;

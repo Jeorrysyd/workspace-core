@@ -15,6 +15,7 @@ const TIMEOUT_MS = 120_000;
 function cleanEnv() {
   const env = { ...process.env };
   delete env.CLAUDECODE;
+  delete env.ANTHROPIC_API_KEY; // prevent fake/test keys from overriding subscription auth
   // Expand PATH to include common npm global and homebrew locations
   env.PATH = [
     env.PATH,
