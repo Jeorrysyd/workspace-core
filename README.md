@@ -1,26 +1,22 @@
-# workspace-core — AI 内容生产线
+# workspace-core
 
-一条从笔记到成品的内容生产管道。5 步完成：发现选题 → 分析可行性 → 锤炼角度 → 生成内容 → 审核打磨。
+把个人笔记变成可发布内容的 AI 工作流。
+
+> 人做决策，AI 做执行。
 
 ```
-┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
-│ 1.发现   │ →  │ 2.选题   │ →  │ 3.角度   │ →  │ 4.生产   │ →  │ 5.打磨   │
-│ Discover │    │ Select   │    │ Angle    │    │ Create   │    │ Polish   │
-└─────────┘    └─────────┘    └─────────┘    └─────────┘    └─────────┘
+发现 ──→ 选题 ──→ 角度 ──→ 生产 ──→ 打磨
+扫笔记    可行性    钩子·立场   选格式    7D审计
+拉信息源   分析     ·论据·骨架  生成全文   精修终稿
 ```
 
-每一步可以独立使用，也可以从任意步骤开始。上一步的输出自动流入下一步。
+## 为什么做这个
 
----
+内容创作者的日常：笔记记了一堆但不知道写什么，选题靠灵感，动笔靠硬磨，写完不确定质量。
 
-## 你需要准备什么
+这个工具把"从笔记到成品"拆成 5 步，每步 AI 辅助，但**决策权始终在你**——AI 不替你选题，不替你定立场，不替你决定发还是不发。
 
-1. **Node.js**（版本 18+）— [nodejs.org](https://nodejs.org) 下载安装
-2. **Anthropic API Key** — [console.anthropic.com](https://console.anthropic.com) 创建一个以 `sk-ant-` 开头的 Key
-
----
-
-## 安装（5 分钟）
+## 快速开始
 
 ```bash
 git clone https://github.com/jeorrysyd/workspace-core.git
@@ -29,137 +25,123 @@ npm install
 cp .env.example .env
 ```
 
-编辑 `.env`：
+编辑 `.env`，填入你的 API Key：
 
-```
+```env
 AI_PROVIDER=anthropic-api
-ANTHROPIC_API_KEY=sk-ant-你的key粘贴在这里
+ANTHROPIC_API_KEY=sk-ant-你的key
+NOTES_DIR=~/你的笔记文件夹    # Obsidian / Logseq / 任何 Markdown 文件夹
 ```
-
-> Claude Code 订阅用户可以用 `AI_PROVIDER=claude-cli`，不需要 API Key。
-
-启动：
 
 ```bash
 npm start
-# → http://localhost:3456
+# 打开 http://localhost:3456
 ```
 
----
+> Claude Code 用户可以设 `AI_PROVIDER=claude-cli`，不需要 API Key。
 
 ## 5 步生产线
 
-### Step 1: 发现
+### 1. 发现
 
-从你的笔记和外部信息源中寻找选题灵感。4 种模式：
+从个人笔记和外部信息源中挖选题。
 
-| 模式 | 做什么 |
-|------|--------|
-| 📝 从笔记发现 | 扫描你的 Markdown 笔记，AI 提取有内容潜力的选题 |
-| 🌐 外部信息源 | 拉取 X/Twitter 上 AI builders 的动态，发现信息差 |
-| 💭 自由发散 | AI 分析你的记录，找出反复出现但没被写成内容的暗流 |
-| 🔍 追踪关键词 | 追踪某个想法在你所有记录中的演变轨迹 |
+- **笔记扫描** — 选时间范围，AI 从你的笔记中提取有内容潜力的方向
+- **信息雷达** — 拉取 X/Twitter builders 动态，发现"外网已火、中文没人讲"的信息差
+- **自由发散** — AI 分析你的所有记录，找出反复出现但从未写成内容的暗流
+- **关键词追踪** — 追踪一个想法在你记录中的演变轨迹
 
-### Step 2: 选题
+### 2. 选题
 
-对选定话题做可行性分析：受众需求、个人立场空间、素材丰富度、风险评估。AI 给出"继续"或"放弃"的建议。
+输入一个话题，AI 做可行性分析：
 
-### Step 3: 角度
+- 谁会看？他们的痛点是什么？
+- 你在这个话题上有什么独特立场？
+- 素材够不够？需要额外调研什么？
+- 有什么风险？（争议、时效性）
+- 结论：值得写，还是换一个？
 
-设计完整的角度卡片：
+### 3. 角度
 
-- **钩子(Hook)** — 开头怎么抓注意力
-- **立场(Stance)** — 你的核心观点
-- **论据(Evidence)** — 支撑观点的案例
-- **骨架(Skeleton)** — 内容结构
+生成**角度卡片**——这是整条生产线的核心产物：
 
-附带：**🗡 质疑模式**（AI 从反面压测你的角度）和 **📋 参考稿分析**（粘贴爆款，提取结构）。
-
-### Step 4: 生产
-
-选择输出格式，AI 基于角度卡片生成内容：
-
-| 格式 | 适合 |
+| 维度 | 内容 |
 |------|------|
-| 📱 短视频口播稿 | 60-90秒，口语化，有立场 |
-| 📕 小红书图文 | 标题+正文+tag，适合截屏传播 |
-| 📝 深度文章 | 说人话、有温度、有洞察 |
-| 🎓 学术风格 | 严谨、引用驱动 |
-| 💼 商业方案 | 痛点→方案→证据→行动 |
+| 钩子 | 开头 3 秒怎么抓注意力（3 个候选） |
+| 立场 | 你的核心观点，要有态度 |
+| 论据 | 3-5 个支撑案例，标注可信度 |
+| 骨架 | 内容结构（≤7 步） |
+| 风险 | 可能的反对意见和应对 |
 
-### Step 5: 打磨
+两个加强工具：
+- **质疑模式** — AI 从反面压测你的角度，找出认知偏见，帮你加固论点
+- **参考稿分析** — 粘贴一篇你喜欢的稿件，AI 提取其结构骨架供复用
 
-7 维度质量审计：人话指数、类比质量、逻辑连贯、金句质量、AI味检测、开头吸引力、收尾余韵。一键生成终稿并保存。
+### 4. 生产
 
----
+选格式，AI 基于角度卡片生成全文：
 
-## 连接你的笔记
+| 格式 | 特点 |
+|------|------|
+| 短视频口播稿 | 60-90 秒，口语化，钩子→案例→立场→行动 |
+| 小红书图文 | 标题有钩子感，每段有金句，结尾带 tag |
+| 深度文章 | 说人话、有温度、有洞察，带结构标注 |
+| 学术风格 | 严谨论证，引用驱动 |
+| 商业方案 | 痛点→方案→证据→行动 |
 
-在 `.env` 里设置笔记文件夹：
+### 5. 打磨
 
-```
-NOTES_DIR=~/Documents/我的笔记
-```
+7 维度质量审计（各 10 分）：
 
-支持 Obsidian、Logseq、或任何 Markdown 文件夹。设置后 Step 1 就能扫描你的笔记了。
+1. **人话指数** — 是否像真人写的
+2. **类比质量** — 抽象概念有没有好类比
+3. **逻辑连贯** — 论证链是否完整
+4. **金句质量** — 有没有可传播的句子
+5. **AI 味检测** — 有没有明显 AI 痕迹
+6. **开头吸引力** — 前 3 句能不能留住人
+7. **收尾余韵** — 结尾是否有力
 
----
+审完一键精修，保存终稿。
 
-## 配置说明
+## 设计理念
+
+**每步可独立，整体可连贯。** 已经有选题？从 Step 3 开始。有现成稿子只想打磨？直接跳 Step 5。上一步的输出自动填入下一步，但不强制。
+
+**个人化是核心。** 在笔记文件夹里放一个 `soul.md`（你的个人画像）和 `memory.md`（你的记忆），AI 会用它们理解你的风格和偏好。用得越久，AI 越懂你。
+
+**极简技术栈。** Express + 原生 JS，无框架、无数据库、无构建步骤。项目数据存为 JSON 文件。`npm install && npm start` 就能跑。
+
+## 配置
 
 | 变量 | 说明 | 默认值 |
 |------|------|--------|
-| `AI_PROVIDER` | AI 服务 (`anthropic-api` 或 `claude-cli`) | `claude-cli` |
+| `AI_PROVIDER` | `anthropic-api` 或 `claude-cli` | `claude-cli` |
 | `ANTHROPIC_API_KEY` | Anthropic API Key | — |
-| `PORT` | 服务端口 | `3456` |
-| `APP_NAME` | 页面标题 | `AI Content Pipeline` |
-| `OWNER_NAME` | 注入到 AI 提示词中的用户名 | `用户` |
 | `NOTES_DIR` | Markdown 笔记文件夹路径 | — |
-| `BUILDERS_FEED_PATH` | 本地 builders feed 路径（可选） | — |
-
----
-
-## 常见问题
-
-**启动后网页打不开？** → 检查终端报错。通常是 API Key 没填或 Node.js 没装。
-
-**笔记扫描不到？** → 确认 `NOTES_DIR` 路径正确，文件夹里有 `.md` 文件。
-
-**AI 不回复？** → 检查 `.env` 里的 `AI_PROVIDER` 和 API Key 配置。
-
-**端口被占用？** → 在 `.env` 里改 `PORT=3457`。
-
----
+| `OWNER_NAME` | 注入到 AI 提示词中的名字 | `用户` |
+| `PORT` | 服务端口 | `3456` |
 
 ## 项目结构
 
 ```
 workspace-core/
-├── index.html                # 单页应用
-├── css/base.css              # 设计系统 + Pipeline 样式
+├── index.html                    # 单页应用入口
+├── css/base.css                  # 设计系统 + Pipeline 样式
 ├── js/
-│   ├── shared.js             # 共享 UI 工具（escHtml, addMessage, formatDate）
-│   ├── app.js                # 模块注册 + 事件总线
-│   └── api.js                # HTTP 客户端 + SSE 流式请求
+│   ├── app.js                    # 模块注册 + 事件总线
+│   ├── api.js                    # HTTP + SSE 流式客户端
+│   └── shared.js                 # 共享 UI 工具
 ├── modules/pipeline/
-│   └── index.js              # Pipeline 前端（5步UI + 项目管理）
-├── server/
-│   ├── index.js              # Express 入口
-│   ├── routes/pipeline.js    # 统一 API（项目CRUD + 5步 + 信息源 + 草稿）
-│   └── services/
-│       ├── ai-provider.js    # AI 供应商工厂
-│       ├── providers/        # claude-cli.js, anthropic.js
-│       ├── storage.js        # 项目/草稿文件存储
-│       ├── notes.js          # Markdown 笔记服务
-│       └── memory.js         # 个人记忆存储
-├── server/skills/            # AI 提示词模板
-└── data/                     # 运行时数据（gitignored）
-    ├── projects/             # 项目文件 (proj-{uuid}.json)
-    ├── drafts/               # 草稿文件 (draft-{uuid}.json)
-    └── builders/             # 信息源缓存
+│   └── index.js                  # Pipeline 前端（5 步 UI + 项目管理）
+└── server/
+    ├── index.js                  # Express 入口
+    ├── routes/pipeline.js        # 统一 API（项目 CRUD + 5 步 + 信息源）
+    ├── services/
+    │   ├── ai-provider.js        # AI 供应商工厂（可切换）
+    │   ├── storage.js            # 文件存储（项目 + 草稿）
+    │   └── notes.js              # Markdown 笔记读取
+    └── skills/                   # AI 提示词模板
 ```
-
----
 
 ## License
 
