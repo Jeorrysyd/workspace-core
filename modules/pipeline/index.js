@@ -229,28 +229,41 @@
 
   function renderSelect() {
     const hasResult = project.select;
-    const fromDiscover = project.select?.topic && project.discover;
+    const flowMode = project.select?.topic && project.discover;
     return `
       <div class="step-section">
-        ${fromDiscover ? `
-          <div class="step-context">
-            <span class="text-sm text-tertiary">来自发现：<strong>${shared.escHtml(project.select.topic)}</strong></span>
-            <a href="#" class="text-link text-sm" data-action="go-step" data-step="0">修改</a>
+        ${flowMode ? `
+          <div class="flow-confirm-card">
+            <div class="flow-confirm-header">
+              <span class="text-sm text-tertiary">来自发现</span>
+              <a href="#" class="text-link text-sm" data-action="clear-select-flow">自己填写</a>
+            </div>
+            <h4>🎯 ${shared.escHtml(project.select.topic)}</h4>
+            ${project.select.summary ? `<p class="text-sm text-secondary">${shared.escHtml(project.select.summary)}</p>` : ''}
           </div>
-        ` : ''}
-        <h3>🎯 选题分析</h3>
-        <p class="text-secondary text-sm">输入你的选题，AI 分析可行性和建议方向</p>
-
-        <div class="input-group">
-          <textarea class="textarea" id="select-topic" rows="2" placeholder="输入你想做的选题...">${shared.escHtml(project.select?.topic || '')}</textarea>
-          <div class="input-row">
-            <select class="select" id="select-type">
-              <option value="article">科普/深度文章</option>
-              <option value="social">自媒体内容</option>
-            </select>
-            <button class="btn btn-primary" data-action="run-select">分析选题</button>
+          <div class="input-group">
+            <div class="input-row">
+              <select class="select" id="select-type">
+                <option value="article">科普/深度文章</option>
+                <option value="social">自媒体内容</option>
+              </select>
+              <button class="btn btn-primary" data-action="run-select">📊 分析这个选题</button>
+            </div>
           </div>
-        </div>
+        ` : `
+          <h3>🎯 选题分析</h3>
+          <p class="text-secondary text-sm">输入你的选题，AI 分析可行性和建议方向</p>
+          <div class="input-group">
+            <textarea class="textarea" id="select-topic" rows="2" placeholder="输入你想做的选题...">${shared.escHtml(project.select?.topic || '')}</textarea>
+            <div class="input-row">
+              <select class="select" id="select-type">
+                <option value="article">科普/深度文章</option>
+                <option value="social">自媒体内容</option>
+              </select>
+              <button class="btn btn-primary" data-action="run-select">分析选题</button>
+            </div>
+          </div>
+        `}
 
         <div class="output-area" id="select-output">${hasResult?.result ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.select.result)}</div>` : ''}</div>
       </div>
@@ -262,24 +275,28 @@
   function renderAngle() {
     const hasResult = project.angle;
     const topic = project.select?.topic || '';
-    const hasSelectData = project.select?.result;
+    const flowMode = project.select?.result;
     return `
       <div class="step-section">
-        ${hasSelectData ? `
-          <div class="step-context">
-            <span class="text-sm text-tertiary">确认选题：<strong>${shared.escHtml(topic)}</strong></span>
-            <a href="#" class="text-link text-sm" data-action="go-step" data-step="1">修改</a>
+        ${flowMode ? `
+          <div class="flow-confirm-card">
+            <div class="flow-confirm-header">
+              <span class="text-sm text-tertiary">确认选题</span>
+              <a href="#" class="text-link text-sm" data-action="go-step" data-step="1">修改</a>
+            </div>
+            <h4>🎯 ${shared.escHtml(topic)}</h4>
+            <details class="step-context-detail" style="margin:var(--space-xs) 0 0">
+              <summary class="text-sm text-tertiary" style="padding:0">查看选题分析摘要</summary>
+              <div class="text-sm text-secondary" style="white-space:pre-wrap;max-height:200px;overflow-y:auto;padding:var(--space-xs) 0">${shared.escHtml((project.select.result || '').slice(0, 500))}${(project.select.result || '').length > 500 ? '...' : ''}</div>
+            </details>
           </div>
-          <details class="step-context-detail">
-            <summary class="text-sm text-tertiary">查看选题分析摘要</summary>
-            <div class="text-sm text-secondary" style="white-space:pre-wrap;max-height:200px;overflow-y:auto;padding:var(--space-xs) 0">${shared.escHtml((project.select.result || '').slice(0, 500))}${(project.select.result || '').length > 500 ? '...' : ''}</div>
-          </details>
-        ` : ''}
-        <h3>💎 角度锤炼</h3>
-        <p class="text-secondary text-sm">设计内容的角度、钩子、立场和结构</p>
+        ` : `
+          <h3>💎 角度锤炼</h3>
+          <p class="text-secondary text-sm">设计内容的角度、钩子、立场和结构</p>
+        `}
 
         <div class="input-group">
-          <input class="input" id="angle-topic" value="${shared.escHtml(topic)}" placeholder="选题" />
+          ${flowMode ? '' : `<input class="input" id="angle-topic" value="${shared.escHtml(topic)}" placeholder="选题" />`}
           <textarea class="textarea" id="angle-pov" rows="2" placeholder="你的核心观点（可选）">${shared.escHtml(project.angle?.myPOV || '')}</textarea>
           <div class="input-row">
             <select class="select" id="angle-tier">
@@ -312,24 +329,27 @@
   function renderCreate() {
     const hasResult = project.create;
     const topic = project.select?.topic || '';
-    const hasAngleData = project.angle?.result;
+    const flowMode = project.angle?.result;
     return `
       <div class="step-section">
-        ${hasAngleData ? `
-          <div class="step-context">
-            <span class="text-sm text-tertiary">选题：<strong>${shared.escHtml(topic)}</strong></span>
-            <a href="#" class="text-link text-sm" data-action="go-step" data-step="2">修改角度</a>
+        ${flowMode ? `
+          <div class="flow-confirm-card">
+            <div class="flow-confirm-header">
+              <span class="text-sm text-tertiary">选题：${shared.escHtml(topic)}</span>
+              <a href="#" class="text-link text-sm" data-action="go-step" data-step="2">修改角度</a>
+            </div>
+            <details class="step-context-detail" style="margin:0">
+              <summary class="text-sm text-tertiary" style="padding:0">查看角度卡片</summary>
+              <div class="text-sm text-secondary" style="white-space:pre-wrap;max-height:200px;overflow-y:auto;padding:var(--space-xs) 0">${shared.escHtml((project.angle.result || '').slice(0, 300))}${(project.angle.result || '').length > 300 ? '...' : ''}</div>
+            </details>
           </div>
-          <details class="step-context-detail">
-            <summary class="text-sm text-tertiary">查看角度卡片</summary>
-            <div class="text-sm text-secondary" style="white-space:pre-wrap;max-height:200px;overflow-y:auto;padding:var(--space-xs) 0">${shared.escHtml((project.angle.result || '').slice(0, 300))}${(project.angle.result || '').length > 300 ? '...' : ''}</div>
-          </details>
-        ` : ''}
-        <h3>✍️ 内容生产</h3>
-        <p class="text-secondary text-sm">基于角度卡片，选择输出格式，生成内容</p>
+        ` : `
+          <h3>✍️ 内容生产</h3>
+          <p class="text-secondary text-sm">基于角度卡片，选择输出格式，生成内容</p>
+        `}
 
         <div class="input-group">
-          <input class="input" id="create-topic" value="${shared.escHtml(topic)}" placeholder="选题" />
+          ${flowMode ? '' : `<input class="input" id="create-topic" value="${shared.escHtml(topic)}" placeholder="选题" />`}
           <div class="format-grid">
             ${[
               ['short-video', '📱 短视频口播稿'],
@@ -505,6 +525,11 @@
     }
 
     // Step 2: Select
+    if (action === 'clear-select-flow') {
+      if (project.select) { project.select.topic = ''; project.select.summary = ''; }
+      render();
+      return;
+    }
     if (action === 'run-select') { runSelect(); return; }
 
     // Step 3: Angle
@@ -644,7 +669,8 @@
   }
 
   function runSelect() {
-    const topic = (view.querySelector('#select-topic') || {}).value || '';
+    const topicEl = view.querySelector('#select-topic');
+    const topic = topicEl ? topicEl.value : (project.select?.topic || '');
     const contentType = (view.querySelector('#select-type') || {}).value || 'article';
     if (!topic.trim()) { app.setStatus('请输入选题'); return; }
 
@@ -658,7 +684,8 @@
   }
 
   function runAngle() {
-    const topic = (view.querySelector('#angle-topic') || {}).value || project.select?.topic || '';
+    const topicEl = view.querySelector('#angle-topic');
+    const topic = topicEl ? topicEl.value : (project.select?.topic || '');
     const myPOV = (view.querySelector('#angle-pov') || {}).value || '';
     const tier = (view.querySelector('#angle-tier') || {}).value || 'B';
     if (!topic.trim()) { app.setStatus('请输入选题'); return; }
@@ -672,7 +699,8 @@
   }
 
   function runChallenge() {
-    const topic = (view.querySelector('#angle-topic') || {}).value || project.select?.topic || '';
+    const topicEl = view.querySelector('#angle-topic');
+    const topic = topicEl ? topicEl.value : (project.select?.topic || '');
     const angleCard = project.angle?.result || '';
     const myPOV = (view.querySelector('#angle-pov') || {}).value || '';
 
@@ -693,7 +721,8 @@
   }
 
   function runCreate() {
-    const topic = (view.querySelector('#create-topic') || {}).value || project.select?.topic || '';
+    const topicEl = view.querySelector('#create-topic');
+    const topic = topicEl ? topicEl.value : (project.select?.topic || '');
     const adjustNote = (view.querySelector('#create-adjust') || {}).value || '';
     if (!topic.trim()) { app.setStatus('请输入选题'); return; }
 

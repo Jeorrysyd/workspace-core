@@ -824,6 +824,30 @@ a:hover {
   color: var(--text-secondary);
 }
 
+/* ── Flow Confirm Card (流转模式确认卡片) ── */
+.flow-confirm-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.flow-confirm-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-xs);
+}
+.flow-confirm-card h4 {
+  margin: 0 0 var(--space-xs);
+  font-size: var(--text-lg);
+  color: var(--text-primary);
+}
+.flow-confirm-card p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
 /* ── Topic Cards (Discover → Select handoff) ── */
 .topic-cards-section {
   margin-top: var(--space-lg);
