@@ -59,9 +59,24 @@
     }
   }
 
+  function hasStepResult(idx) {
+    const fields = ['discover', 'select', 'angle', 'create', 'polish'];
+    const data = project[fields[idx]];
+    if (!data) return false;
+    if (typeof data === 'string') return data.length > 0;
+    return !!(data.result || data.content || data.review || data.final);
+  }
+
   function goToStep(idx) {
     if (streaming) return;
     if (idx < 0 || idx >= STEPS.length) return;
+    // Forward jumps require all prior steps to have results
+    if (idx > currentStep) {
+      for (let i = currentStep; i < idx; i++) {
+        if (!hasStepResult(i)) return;
+      }
+    }
+    selectedMode = null;
     currentStep = idx;
     project.currentStep = idx + 1;
     render();
@@ -110,13 +125,15 @@
       </div>
 
       <div class="step-bar">
-        ${STEPS.map((s, i) => `
-          <div class="step-item ${i === currentStep ? 'active' : ''} ${i < currentStep ? 'done' : ''}" data-action="go-step" data-step="${i}">
+        ${STEPS.map((s, i) => {
+          const canReach = i <= currentStep || (() => { for (let j = 0; j < i; j++) { if (!hasStepResult(j)) return false; } return true; })();
+          return `
+          <div class="step-item ${i === currentStep ? 'active' : ''} ${i < currentStep ? 'done' : ''} ${!canReach ? 'disabled' : ''}" data-action="go-step" data-step="${i}">
             <div class="step-num">${i + 1}</div>
             <div class="step-label">${s.label}</div>
           </div>
-          ${i < STEPS.length - 1 ? '<div class="step-connector"></div>' : ''}
-        `).join('')}
+          ${i < STEPS.length - 1 ? '<div class="step-connector"></div>' : ''}`;
+        }).join('')}
       </div>
 
       <div class="step-content" id="step-content">
@@ -126,8 +143,8 @@
       <div class="step-actions">
         ${currentStep > 0 ? `<button class="btn btn-ghost" data-action="prev-step">← 上一步</button>` : '<span></span>'}
         <div>
-          ${streaming ? `<button class="btn btn-danger" data-action="abort">停止生成</button>` : ''}
-          ${currentStep < STEPS.length - 1 ? `<button class="btn btn-primary" data-action="next-step">下一步 →</button>` : ''}
+          <button class="btn btn-danger" data-action="abort" style="display:none">停止生成</button>
+          ${currentStep < STEPS.length - 1 && hasStepResult(currentStep) ? `<button class="btn btn-primary" data-action="next-step">下一步 →</button>` : ''}
           <button class="btn btn-ghost" data-action="save-project">保存</button>
         </div>
       </div>
@@ -149,30 +166,37 @@
 
   function renderDiscover() {
     const hasResult = project.discover;
+    const showTimeRange = selectedMode === 'notes' || selectedMode === 'feed';
+    const showTrace = selectedMode === 'trace';
+    const showStart = selectedMode && selectedMode !== 'trace';
     return `
       <div class="step-section">
         <h3>🔍 发现选题</h3>
         <p class="text-secondary text-sm">从你的笔记和外部信息源中寻找内容创作灵感</p>
 
         <div class="discover-modes">
-          <button class="btn ${!hasResult ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="notes">📝 从笔记发现</button>
-          <button class="btn btn-ghost" data-action="discover" data-mode="feed">🌐 从外部信息源</button>
-          <button class="btn btn-ghost" data-action="discover" data-mode="drift">💭 自由发散</button>
+          <button class="btn ${selectedMode === 'notes' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="notes">📝 从笔记发现</button>
+          <button class="btn ${selectedMode === 'feed' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="feed">🌐 从外部信息源</button>
+          <button class="btn ${selectedMode === 'drift' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="drift">💭 自由发散</button>
         </div>
 
-        <div class="discover-options" id="discover-options" style="display:none">
+        <div class="discover-options" id="discover-options" style="display:${showTimeRange ? '' : 'none'}">
           <label class="text-sm text-secondary">时间范围</label>
           <div class="time-range-group">
             ${['24h', '3d', '7d', '14d', '30d'].map(r => `
-              <button class="btn btn-sm ${r === '7d' ? 'btn-primary' : 'btn-ghost'}" data-action="set-range" data-range="${r}">${r}</button>
+              <button class="btn btn-sm ${r === selectedRange ? 'btn-primary' : 'btn-ghost'}" data-action="set-range" data-range="${r}">${r}</button>
             `).join('')}
           </div>
         </div>
 
-        <div class="discover-trace" id="discover-trace" style="display:none">
+        <div class="discover-trace" id="discover-trace" style="display:${showTrace ? '' : 'none'}">
           <label class="text-sm text-secondary">追踪关键词</label>
           <input class="input" id="trace-keyword" placeholder="输入要追踪的主题..." />
-          <button class="btn btn-primary" data-action="discover" data-mode="trace">开始追踪</button>
+          <button class="btn btn-primary" data-action="start-discover">开始追踪</button>
+        </div>
+
+        <div id="discover-start" style="display:${showStart ? '' : 'none'}; margin-top:var(--space-sm)">
+          <button class="btn btn-primary" data-action="start-discover">开始扫描</button>
         </div>
 
         <div class="output-area" id="discover-output">${hasResult ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.discover)}</div>` : ''}</div>
@@ -291,7 +315,9 @@
           <button class="btn btn-secondary" data-action="save-draft">💾 保存为草稿</button>
         </div>
 
-        <div class="output-area" id="polish-output">${hasResult?.review ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.polish.review)}</div>` : ''}${hasResult?.final ? `<hr style="margin:var(--space-md) 0"><div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.polish.final)}</div>` : ''}</div>
+        <div class="output-area" id="polish-review-output">${hasResult?.review ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.polish.review)}</div>` : ''}</div>
+        ${hasResult?.review && hasResult?.final ? '<hr style="margin:var(--space-md) 0">' : ''}
+        <div class="output-area" id="polish-final-output" ${!hasResult?.final && !hasResult?.review ? 'style="display:none"' : ''}>${hasResult?.final ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.polish.final)}</div>` : ''}</div>
       </div>
     `;
   }
@@ -300,6 +326,7 @@
 
   let selectedRange = '7d';
   let selectedFormat = 'article';
+  let selectedMode = null;
 
   function attachEvents() {
     view.addEventListener('click', handleClick);
@@ -315,10 +342,16 @@
     }
   }
 
+  const AI_ACTIONS = new Set(['start-discover', 'run-select', 'run-angle', 'run-challenge',
+    'run-ref-analyze', 'run-ref-extract', 'run-create', 'run-review', 'run-final']);
+
   function handleClick(e) {
     const btn = e.target.closest('[data-action]');
     if (!btn) return;
     const action = btn.dataset.action;
+
+    // Block AI actions while streaming
+    if (streaming && AI_ACTIONS.has(action)) return;
 
     // Navigation
     if (action === 'new-project') { newProject(); return; }
@@ -347,16 +380,23 @@
     }
     if (action === 'discover') {
       const mode = btn.dataset.mode;
-      if (mode === 'trace') {
-        const el = view.querySelector('#discover-trace');
-        if (el) el.style.display = '';
-        return;
-      }
-      if (mode === 'notes') {
-        const el = view.querySelector('#discover-options');
-        if (el) el.style.display = '';
-      }
-      runDiscover(mode);
+      selectedMode = mode;
+      // Mutually exclusive panels
+      const opts = view.querySelector('#discover-options');
+      const trace = view.querySelector('#discover-trace');
+      const start = view.querySelector('#discover-start');
+      if (opts) opts.style.display = (mode === 'notes' || mode === 'feed') ? '' : 'none';
+      if (trace) trace.style.display = mode === 'trace' ? '' : 'none';
+      if (start) start.style.display = (mode && mode !== 'trace') ? '' : 'none';
+      // Highlight active mode button
+      view.querySelectorAll('.discover-modes .btn').forEach(b => {
+        b.classList.toggle('btn-primary', b.dataset.mode === mode);
+        b.classList.toggle('btn-ghost', b.dataset.mode !== mode);
+      });
+      return;
+    }
+    if (action === 'start-discover') {
+      if (selectedMode) runDiscover(selectedMode);
       return;
     }
 
@@ -389,6 +429,9 @@
   // ── Step Execution ────────────────────────────────────────────────────────
 
   function streamToOutput(outputId, url, body, onDone) {
+    // Abort any existing stream before starting a new one
+    if (abortFn) { abortFn(); abortFn = null; }
+
     const el = view.querySelector(`#${outputId}`);
     if (!el) return;
     el.innerHTML = '<div class="msg-text streaming" style="white-space:pre-wrap;line-height:1.8"></div>';
@@ -399,6 +442,12 @@
 
     abortFn = api.stream(url, body,
       (chunk) => {
+        if (chunk.error) {
+          fullText += '\n\n⚠️ ' + chunk.error;
+          textEl.textContent = fullText;
+          shared.scrollToBottom(el);
+          return;
+        }
         const text = chunk.text || chunk.content || '';
         fullText += text;
         textEl.textContent = fullText;
@@ -419,6 +468,10 @@
   function updateStepButtons() {
     const abortBtn = view.querySelector('[data-action="abort"]');
     if (abortBtn) abortBtn.style.display = streaming ? '' : 'none';
+    // Disable/enable AI action buttons during streaming
+    view.querySelectorAll('[data-action]').forEach(btn => {
+      if (AI_ACTIONS.has(btn.dataset.action)) btn.disabled = streaming;
+    });
   }
 
   function runDiscover(mode) {
@@ -503,7 +556,8 @@
     const content = project.create?.content || '';
     if (!content) { app.setStatus('请先在"生产"步骤生成内容'); return; }
 
-    streamToOutput('polish-output', '/api/pipeline/polish', { content, mode }, (text) => {
+    const outputId = mode === 'review' ? 'polish-review-output' : 'polish-final-output';
+    streamToOutput(outputId, '/api/pipeline/polish', { content, mode }, (text) => {
       if (!project.polish) project.polish = {};
       if (mode === 'review') project.polish.review = text;
       else project.polish.final = text;

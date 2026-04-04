@@ -777,6 +777,10 @@ a:hover {
 .step-item.done + .step-connector {
   background: var(--accent);
 }
+.step-item.disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
 /* ── Step Content ── */
 .step-content {

@@ -189,7 +189,10 @@ ${soul ? `用户的个人画像：\n${soul}` : ''}`;
     const xFeed = await fetchFeed('feed-x.json').catch(() => ({ x: [], stats: {} }));
     const xBuilders = xFeed.x || [];
     if (xBuilders.length === 0) {
-      return res.json({ topics: [], message: '没有找到外部信息源' });
+      startSSE(res);
+      sendSSE(res, '⚠️ 没有找到外部信息源数据。');
+      endSSE(res);
+      return;
     }
 
     const tweetData = xBuilders.map(b => ({
