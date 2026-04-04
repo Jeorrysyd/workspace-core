@@ -188,4 +188,57 @@ function saveNote({ title, content, subdir = 'insights' }) {
   return { path: relativePath, id: `notes-${relativePath}` };
 }
 
-module.exports = { getNotesDir, listNotes, getRecentContext, getNoteContent, saveNote };
+/**
+ * List vault items (uploads + clips) from data/vault/index.json
+ * Returns same format as listNotes for unified consumption
+ */
+function listVaultItems({ maxAge } = {}) {
+  const indexPath = path.join(__dirname, '..', '..', 'data', 'vault', 'index.json');
+  if (!fs.existsSync(indexPath)) return [];
+
+  let index;
+  try {
+    index = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
+  } catch {
+    return [];
+  }
+
+  const textDir = path.join(__dirname, '..', '..', 'data', 'vault', 'text');
+  let items = (index.items || []).map(item => {
+    const textPath = path.join(textDir, `${item.id}.txt`);
+    let content = '';
+    try { content = fs.readFileSync(textPath, 'utf-8'); } catch {}
+    return {
+      id: item.id,
+      title: item.originalName || item.id,
+      content,
+      type: item.type === 'clip' ? '剪藏' : '上传',
+      date: (item.createdAt || '').slice(0, 10),
+      source: item.type === 'clip' ? 'Clip' : 'Upload',
+      _relativePath: item.id
+    };
+  }).filter(n => n.content.trim());
+
+  if (maxAge) {
+    const cutoff = new Date(Date.now() - maxAge * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    items = items.filter(n => n.date >= cutoff);
+  }
+
+  return items;
+}
+
+/**
+ * List all sources: notes from NOTES_DIR + vault items
+ * @param {Object} options - same as listNotes
+ * @returns {Array}
+ */
+function listAllSources(options = {}) {
+  const notesList = listNotes(options);
+  const vaultItems = listVaultItems(options);
+  const combined = [...notesList, ...vaultItems];
+  combined.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  if (options.limit) return combined.slice(0, options.limit);
+  return combined;
+}
+
+module.exports = { getNotesDir, listNotes, getRecentContext, getNoteContent, saveNote, listVaultItems, listAllSources };

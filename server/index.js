@@ -9,6 +9,7 @@ const cors = require('cors');
 
 const aiProvider = require('./services/ai-provider');
 const pipelineRoutes = require('./routes/pipeline');
+const vaultRoutes = require('./routes/vault');
 
 const app = express();
 const PORT = process.env.PORT || 3456;
@@ -29,6 +30,7 @@ app.use(express.static(path.join(__dirname, '..')));
 
 // API routes — unified pipeline
 app.use('/api/pipeline', pipelineRoutes);
+app.use('/api/vault', vaultRoutes);
 
 // Config endpoint (includes AI readiness)
 app.get('/api/config', (req, res) => {
@@ -37,7 +39,8 @@ app.get('/api/config', (req, res) => {
     ownerName: process.env.OWNER_NAME || '用户',
     aiReady: aiProvider.aiReady,
     aiProvider: aiProvider.aiProvider,
-    aiHint: aiProvider.aiHint
+    aiHint: aiProvider.aiHint,
+    notesDir: process.env.NOTES_DIR || null
   });
 });
 

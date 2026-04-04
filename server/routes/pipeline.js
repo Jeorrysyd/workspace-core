@@ -30,6 +30,14 @@ const FEED_BASE_URL = 'https://raw.githubusercontent.com/zarazhangrui/follow-bui
 const BUILDERS_DIR = path.join(__dirname, '..', '..', 'data', 'builders');
 if (!fs.existsSync(BUILDERS_DIR)) fs.mkdirSync(BUILDERS_DIR, { recursive: true });
 
+// Structured topic output instruction — appended to all discover prompts
+const TOPIC_JSON_INSTRUCTION = `
+
+最后，请在回答末尾输出结构化选题列表，格式如下（必须是合法JSON）：
+\`\`\`json:topics
+[{"title":"选题标题","summary":"一句话概述","score":"高|中|低"}]
+\`\`\``;
+
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function readSoulMd() {
@@ -51,7 +59,7 @@ ${archiveContext || '（暂无）'}`;
 function collectNotes(timeRange) {
   const dayMap = { '24h': 1, '3d': 3, '7d': 7, '14d': 14, '30d': 30 };
   const maxAge = dayMap[timeRange] || 7;
-  return notes.listNotes({ maxAge }).map(n => ({
+  return notes.listAllSources({ maxAge }).map(n => ({
     name: n.title,
     path: n._relativePath || n.id,
     content: n.content.slice(0, 3000),
@@ -179,7 +187,7 @@ router.post('/discover', async (req, res) => {
 3. 优先选择：有独特个人视角的、有信息差的、素材充足的
 4. 用 Markdown 列表格式输出
 
-${soul ? `用户的个人画像：\n${soul}` : ''}`;
+${soul ? `用户的个人画像：\n${soul}` : ''}${TOPIC_JSON_INSTRUCTION}`;
 
     const userMessage = `【最近 ${range} 的笔记（共 ${notesList.length} 篇）】\n\n${notesText}\n\n请分析这些笔记，发现选题机会。`;
     await claude.streamResponse(res, systemPrompt, userMessage);
@@ -210,7 +218,7 @@ ${soul ? `用户的个人画像：\n${soul}` : ''}`;
 3. 每个选题标注：标题、信息来源、信息差评分、建议角度
 4. 用 Markdown 列表格式输出
 
-${soul ? `用户的个人画像：\n${soul}` : ''}`;
+${soul ? `用户的个人画像：\n${soul}` : ''}${TOPIC_JSON_INSTRUCTION}`;
 
     await claude.streamResponse(res, systemPrompt, JSON.stringify(tweetData, null, 2));
 
@@ -225,7 +233,7 @@ ${soul ? `用户的个人画像：\n${soul}` : ''}`;
 3. **选题转化**：每个暗流主题如何变成一个有吸引力的内容选题？给出标题建议和角度。
 4. **张力分析**：这些主题之间是否有冲突或对立？冲突本身就是好选题。
 
-${soul ? `用户的个人画像：\n${soul}` : ''}`;
+${soul ? `用户的个人画像：\n${soul}` : ''}${TOPIC_JSON_INSTRUCTION}`;
 
     const archiveContext = notes.getRecentContext({ maxAge: 30, limit: 15, maxChars: 1000 });
     await claude.streamResponse(res, systemPrompt, archiveContext || '（暂无笔记）');
@@ -240,7 +248,7 @@ ${soul ? `用户的个人画像：\n${soul}` : ''}`;
 3. **转折点**：思想发生重大变化的节点
 4. **选题潜力**：这个主题现在处于什么阶段？是否适合变成内容？如果适合，建议什么角度？
 
-${soul ? `用户的个人画像：\n${soul}` : ''}`;
+${soul ? `用户的个人画像：\n${soul}` : ''}${TOPIC_JSON_INSTRUCTION}`;
 
     const archiveContext = notes.getRecentContext({ maxAge: 60, limit: 20, maxChars: 1200 });
     await claude.streamResponse(res, systemPrompt, `追踪主题：${keyword || '（未指定）'}\n\n${archiveContext || '（暂无记录）'}`);
@@ -281,7 +289,7 @@ ${soul ? `用户的个人画像：\n${soul}` : ''}`;
 
 /** Main angle card generation */
 router.post('/angle', async (req, res) => {
-  const { topic, direction, contentType, myPOV, tier } = req.body;
+  const { topic, direction, contentType, myPOV, tier, selectInsights } = req.body;
   if (!topic) return res.status(400).json({ error: '请输入选题' });
 
   const soul = readSoulMd();
@@ -304,7 +312,7 @@ router.post('/angle', async (req, res) => {
 
 ${soul ? `用户的个人画像：\n${soul}` : ''}`;
 
-  const userMessage = `选题：${topic}\n内容类型：${type}\n档位：${tier || 'B'}${direction ? `\n方向：${direction}` : ''}${myPOV ? `\n\n作者核心观点：\n${myPOV}` : ''}\n\n请设计角度卡片。`;
+  const userMessage = `选题：${topic}\n内容类型：${type}\n档位：${tier || 'B'}${direction ? `\n方向：${direction}` : ''}${myPOV ? `\n\n作者核心观点：\n${myPOV}` : ''}${selectInsights ? `\n\n选题分析摘要：\n${selectInsights}` : ''}\n\n请设计角度卡片。`;
   await claude.streamResponse(res, systemPrompt, userMessage);
 });
 
