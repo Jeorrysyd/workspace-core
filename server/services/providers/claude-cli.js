@@ -15,6 +15,13 @@ const TIMEOUT_MS = 120_000;
 function cleanEnv() {
   const env = { ...process.env };
   delete env.CLAUDECODE;
+  // Expand PATH to include common npm global and homebrew locations
+  env.PATH = [
+    env.PATH,
+    `${env.HOME}/.npm-global/bin`,
+    '/opt/homebrew/bin',
+    '/usr/local/bin',
+  ].filter(Boolean).join(':');
   return env;
 }
 

@@ -42,8 +42,16 @@ if (!config) {
     console.warn(`[ai-provider] ${hint}`);
   } else if (PROVIDER === 'claude-cli') {
     // Check if claude CLI is available
+    // Expand PATH to include common npm global and homebrew locations
+    const expandedPath = [
+      process.env.PATH,
+      `${process.env.HOME}/.npm-global/bin`,
+      `${process.env.HOME}/.nvm/versions/node/current/bin`,
+      '/opt/homebrew/bin',
+      '/usr/local/bin',
+    ].filter(Boolean).join(':');
     try {
-      execSync('which claude', { stdio: 'ignore' });
+      execSync('which claude', { stdio: 'ignore', env: { ...process.env, PATH: expandedPath } });
       ready = true;
     } catch {
       hint = '未找到 claude 命令。请安装 Claude Code CLI 或切换到 API Key 模式';
