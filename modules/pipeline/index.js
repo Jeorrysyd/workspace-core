@@ -1,22 +1,18 @@
 /**
  * Pipeline Module — Content Production Pipeline
- * 5 steps: Discover → Select → Angle → Create → Polish
- * Connected flow with jump-in capability
+ * 3 steps: Discover → Angle → Create
+ * (Select merged into Discover, Polish merged into Create)
  */
 (function () {
   const STEPS = [
     { id: 'discover', label: '发现', icon: '🔍', desc: '从笔记和信息源中发现选题' },
-    { id: 'select',   label: '选题', icon: '🎯', desc: '分析选题可行性' },
     { id: 'angle',    label: '角度', icon: '💎', desc: '设计角度卡片' },
-    { id: 'create',   label: '生产', icon: '✍️', desc: '生成内容' },
-    { id: 'polish',   label: '打磨', icon: '✨', desc: '审核和精修' }
+    { id: 'create',   label: '生产', icon: '✍️', desc: '生成内容 + 润色终稿' }
   ];
 
   const CTA_LABELS = [
-    '📌 选好了，分析这个选题 →',
-    '💎 方向确认，锤炼角度 →',
-    '✍️ 角度就绪，开始写 →',
-    '✨ 审核打磨 →'
+    '💎 选好了，锤炼角度 →',
+    '✍️ 角度就绪，开始写 →'
   ];
 
   let view = null;
@@ -44,7 +40,10 @@
   async function loadProject(id) {
     try {
       project = await api.get(`/api/pipeline/projects/${id}`);
-      currentStep = (project.currentStep || 1) - 1;
+      // Backward compat: map old 5-step index to 3-step index
+      const oldStep = project.currentStep || 1;
+      const stepMap = { 1: 0, 2: 0, 3: 1, 4: 2, 5: 2 };
+      currentStep = stepMap[oldStep] ?? 0;
       render();
     } catch (err) {
       app.setStatus('加载项目失败: ' + err.message);
@@ -67,7 +66,12 @@
   }
 
   function hasStepResult(idx) {
-    const fields = ['discover', 'select', 'angle', 'create', 'polish'];
+    if (idx === 0) {
+      // Discover is "done" when a topic has been picked (or manually entered)
+      return !!(project.select?.topic);
+    }
+    // 3-step mapping: 1=angle, 2=create
+    const fields = [null, 'angle', 'create'];
     const data = project[fields[idx]];
     if (!data) return false;
     if (typeof data === 'string') return data.length > 0;
@@ -85,7 +89,9 @@
     }
     selectedMode = null;
     currentStep = idx;
-    project.currentStep = idx + 1;
+    // Map 3-step index back to storage: 0→1, 1→3, 2→4 (for backward compat)
+    const storageMap = [1, 3, 4];
+    project.currentStep = storageMap[idx] || (idx + 1);
     render();
     // Re-trigger step fade animation
     const el = view.querySelector('.step-content');
@@ -168,10 +174,8 @@
   function renderStepContent(stepId) {
     switch (stepId) {
       case 'discover': return renderDiscover();
-      case 'select': return renderSelect();
       case 'angle': return renderAngle();
       case 'create': return renderCreate();
-      case 'polish': return renderPolish();
       default: return '';
     }
   }
@@ -180,10 +184,11 @@
 
   function renderDiscover() {
     const hasResult = project.discover;
+    const pickedTopic = project.select?.topic || '';
     return `
       <div class="step-section">
         <h3>🔍 发现选题</h3>
-        <p class="text-secondary text-sm">从你的笔记和外部信息源中寻找内容创作灵感</p>
+        <p class="text-secondary text-sm">从笔记和信息源中发现选题，或直接输入你的想法</p>
 
         <div class="discover-modes">
           <button class="btn ${selectedMode === 'notes' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="notes">📝 从笔记发现</button>
@@ -221,74 +226,37 @@
         </div>
 
         <div class="output-area" id="discover-output">${hasResult ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.discover)}</div>` : ''}</div>
+
+        <div class="manual-topic-section" style="margin-top:var(--space-md);padding-top:var(--space-md);border-top:1px solid var(--border)">
+          <p class="text-sm text-secondary" style="margin-bottom:var(--space-xs)">或者直接输入选题：</p>
+          <div class="input-row">
+            <input class="input" id="manual-topic" value="${shared.escHtml(pickedTopic)}" placeholder="输入你想写的选题..." />
+            <button class="btn btn-primary" data-action="manual-pick-topic">确认选题</button>
+          </div>
+        </div>
       </div>
     `;
   }
 
-  // ── Step 2: Select ────────────────────────────────────────────────────────
-
-  function renderSelect() {
-    const hasResult = project.select;
-    const flowMode = project.select?.topic && project.discover;
-    return `
-      <div class="step-section">
-        ${flowMode ? `
-          <div class="flow-confirm-card">
-            <div class="flow-confirm-header">
-              <span class="text-sm text-tertiary">来自发现</span>
-              <a href="#" class="text-link text-sm" data-action="clear-select-flow">自己填写</a>
-            </div>
-            <h4>🎯 ${shared.escHtml(project.select.topic)}</h4>
-            ${project.select.summary ? `<p class="text-sm text-secondary">${shared.escHtml(project.select.summary)}</p>` : ''}
-          </div>
-          <div class="input-group">
-            <div class="input-row">
-              <select class="select" id="select-type">
-                <option value="article">科普/深度文章</option>
-                <option value="social">自媒体内容</option>
-              </select>
-              <button class="btn btn-primary" data-action="run-select">📊 分析这个选题</button>
-            </div>
-          </div>
-        ` : `
-          <h3>🎯 选题分析</h3>
-          <p class="text-secondary text-sm">输入你的选题，AI 分析可行性和建议方向</p>
-          <div class="input-group">
-            <textarea class="textarea" id="select-topic" rows="2" placeholder="输入你想做的选题...">${shared.escHtml(project.select?.topic || '')}</textarea>
-            <div class="input-row">
-              <select class="select" id="select-type">
-                <option value="article">科普/深度文章</option>
-                <option value="social">自媒体内容</option>
-              </select>
-              <button class="btn btn-primary" data-action="run-select">分析选题</button>
-            </div>
-          </div>
-        `}
-
-        <div class="output-area" id="select-output">${hasResult?.result ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.select.result)}</div>` : ''}</div>
-      </div>
-    `;
-  }
-
-  // ── Step 3: Angle ─────────────────────────────────────────────────────────
+  // ── Step 2: Angle ──────────────────────────────────────────────────────────
 
   function renderAngle() {
     const hasResult = project.angle;
     const topic = project.select?.topic || '';
-    const flowMode = project.select?.result;
+    const flowMode = !!topic && project.discover;
+    const summary = project.select?.summary || '';
+    const direction = project.select?.direction || '';
     return `
       <div class="step-section">
         ${flowMode ? `
           <div class="flow-confirm-card">
             <div class="flow-confirm-header">
-              <span class="text-sm text-tertiary">确认选题</span>
-              <a href="#" class="text-link text-sm" data-action="go-step" data-step="1">修改</a>
+              <span class="text-sm text-tertiary">已选选题</span>
+              <a href="#" class="text-link text-sm" data-action="go-step" data-step="0">重新选题</a>
             </div>
             <h4>🎯 ${shared.escHtml(topic)}</h4>
-            <details class="step-context-detail" style="margin:var(--space-xs) 0 0">
-              <summary class="text-sm text-tertiary" style="padding:0">查看选题分析摘要</summary>
-              <div class="text-sm text-secondary" style="white-space:pre-wrap;max-height:200px;overflow-y:auto;padding:var(--space-xs) 0">${shared.escHtml((project.select.result || '').slice(0, 500))}${(project.select.result || '').length > 500 ? '...' : ''}</div>
-            </details>
+            ${summary ? `<p class="text-sm text-secondary">${shared.escHtml(summary)}</p>` : ''}
+            ${direction ? `<p class="text-sm text-tertiary">建议方向：${shared.escHtml(direction)}</p>` : ''}
           </div>
         ` : `
           <h3>💎 角度锤炼</h3>
@@ -324,10 +292,11 @@
     `;
   }
 
-  // ── Step 4: Create ────────────────────────────────────────────────────────
+  // ── Step 3: Create (+ Polish inline) ───────────────────────────────────────
 
   function renderCreate() {
     const hasResult = project.create;
+    const hasPolish = project.polish;
     const topic = project.select?.topic || '';
     const flowMode = project.angle?.result;
     return `
@@ -336,7 +305,7 @@
           <div class="flow-confirm-card">
             <div class="flow-confirm-header">
               <span class="text-sm text-tertiary">选题：${shared.escHtml(topic)}</span>
-              <a href="#" class="text-link text-sm" data-action="go-step" data-step="2">修改角度</a>
+              <a href="#" class="text-link text-sm" data-action="go-step" data-step="1">修改角度</a>
             </div>
             <details class="step-context-detail" style="margin:0">
               <summary class="text-sm text-tertiary" style="padding:0">查看角度卡片</summary>
@@ -366,39 +335,21 @@
         </div>
 
         <div class="output-area" id="create-output">${hasResult?.content ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.create.content)}</div>` : ''}</div>
-      </div>
-    `;
-  }
 
-  // ── Step 5: Polish ────────────────────────────────────────────────────────
-
-  function renderPolish() {
-    const hasResult = project.polish;
-    const hasCreateData = project.create?.content;
-    return `
-      <div class="step-section">
-        ${hasCreateData ? `
-          <div class="step-context">
-            <span class="text-sm text-tertiary">格式：<strong>${shared.escHtml(project.create.format || '文章')}</strong></span>
-            <a href="#" class="text-link text-sm" data-action="go-step" data-step="3">修改内容</a>
+        ${hasResult?.content ? `
+        <div class="polish-section" style="margin-top:var(--space-lg);padding-top:var(--space-md);border-top:1px solid var(--border)">
+          <h4 style="font-family:var(--font-heading);font-size:var(--text-base);font-weight:500;margin-bottom:var(--space-sm)">润色与终稿</h4>
+          <div class="input-group" style="flex-direction:row;flex-wrap:wrap;gap:var(--space-sm)">
+            <button class="btn btn-primary" data-action="run-final">🔧 一键生成终稿</button>
+            <button class="btn btn-ghost" data-action="run-review">📊 7D 质量审计（可选）</button>
+            <button class="btn btn-secondary" data-action="save-draft">💾 保存为草稿</button>
           </div>
-          <details class="step-context-detail">
-            <summary class="text-sm text-tertiary">查看待打磨内容</summary>
-            <div class="text-sm text-secondary" style="white-space:pre-wrap;max-height:200px;overflow-y:auto;padding:var(--space-xs) 0">${shared.escHtml((project.create.content || '').slice(0, 300))}${(project.create.content || '').length > 300 ? '...' : ''}</div>
-          </details>
-        ` : ''}
-        <h3>✨ 审核打磨</h3>
-        <p class="text-secondary text-sm">7维度质量审计 + 一键精修终稿</p>
 
-        <div class="input-group">
-          <button class="btn btn-primary" data-action="run-review">📊 7D 质量审计</button>
-          <button class="btn btn-secondary" data-action="run-final">🔧 生成终稿</button>
-          <button class="btn btn-secondary" data-action="save-draft">💾 保存为草稿</button>
+          <div class="output-area" id="polish-review-output">${hasPolish?.review ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.polish.review)}</div>` : ''}</div>
+          ${hasPolish?.review && hasPolish?.final ? '<hr style="margin:var(--space-md) 0">' : ''}
+          <div class="output-area" id="polish-final-output">${hasPolish?.final ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.polish.final)}</div>` : ''}</div>
         </div>
-
-        <div class="output-area" id="polish-review-output">${hasResult?.review ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.polish.review)}</div>` : ''}</div>
-        ${hasResult?.review && hasResult?.final ? '<hr style="margin:var(--space-md) 0">' : ''}
-        <div class="output-area" id="polish-final-output" ${!hasResult?.final && !hasResult?.review ? 'style="display:none"' : ''}>${hasResult?.final ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.polish.final)}</div>` : ''}</div>
+        ` : ''}
       </div>
     `;
   }
@@ -430,7 +381,7 @@
     }
   }
 
-  const AI_ACTIONS = new Set(['start-discover', 'run-select', 'run-angle', 'run-challenge',
+  const AI_ACTIONS = new Set(['start-discover', 'run-angle', 'run-challenge',
     'run-ref-analyze', 'run-ref-extract', 'run-create', 'run-review', 'run-final']);
 
   function handleClick(e) {
@@ -515,6 +466,8 @@
         if (!project.select) project.select = {};
         project.select.topic = t.title;
         project.select.summary = t.summary;
+        project.select.direction = t.direction || '';
+        project.select.feasibility = t.feasibility || '';
         // Highlight picked card
         view.querySelectorAll('.topic-card').forEach((c, i) => {
           c.classList.toggle('picked', i === idx);
@@ -524,15 +477,22 @@
       return;
     }
 
-    // Step 2: Select
-    if (action === 'clear-select-flow') {
-      if (project.select) { project.select.topic = ''; project.select.summary = ''; }
-      render();
+    // Manual topic entry
+    if (action === 'manual-pick-topic') {
+      const topicEl = view.querySelector('#manual-topic');
+      const topic = topicEl ? topicEl.value.trim() : '';
+      if (!topic) { app.setStatus('请输入选题'); return; }
+      if (!project.select) project.select = {};
+      project.select.topic = topic;
+      project.select.summary = '';
+      project.select.direction = '';
+      project.select.feasibility = '';
+      updateStepButtons();
+      app.setStatus('选题已确认');
       return;
     }
-    if (action === 'run-select') { runSelect(); return; }
 
-    // Step 3: Angle
+    // Step 2: Angle
     if (action === 'run-angle') { runAngle(); return; }
     if (action === 'run-challenge') { runChallenge(); return; }
     if (action === 'run-ref-analyze') { runReference('analyze'); return; }
@@ -644,12 +604,14 @@
       const scoreColor = { '高': 'var(--accent)', '中': 'var(--text-secondary)', '低': 'var(--text-tertiary)' };
       const cardsHtml = `
         <div class="topic-cards-section">
-          <p class="text-sm text-secondary" style="margin-bottom:var(--space-sm)">🏷️ 从发现中选取一个选题：</p>
+          <p class="text-sm text-secondary" style="margin-bottom:var(--space-sm)">🏷️ 选取一个选题，直接进入角度设计：</p>
           <div class="topic-cards-grid">
             ${topics.map((t, i) => `
               <div class="topic-card" data-action="pick-topic" data-idx="${i}">
                 <div class="topic-card-title">${shared.escHtml(t.title || '')}</div>
                 <div class="topic-card-summary text-sm text-secondary">${shared.escHtml(t.summary || '')}</div>
+                ${t.feasibility ? `<div class="topic-card-feasibility text-xs text-tertiary" style="margin:var(--space-xs) 0;font-style:italic">${shared.escHtml(t.feasibility)}</div>` : ''}
+                ${t.direction ? `<div class="topic-card-direction text-xs" style="color:var(--accent);margin-bottom:var(--space-xs)">→ ${shared.escHtml(t.direction)}</div>` : ''}
                 <div class="topic-card-footer">
                   <span class="topic-card-score" style="color:${scoreColor[t.score] || 'var(--text-tertiary)'}">信息差：${shared.escHtml(t.score || '—')}</span>
                   <span class="topic-card-pick">选取 →</span>
@@ -668,21 +630,6 @@
     }
   }
 
-  function runSelect() {
-    const topicEl = view.querySelector('#select-topic');
-    const topic = topicEl ? topicEl.value : (project.select?.topic || '');
-    const contentType = (view.querySelector('#select-type') || {}).value || 'article';
-    if (!topic.trim()) { app.setStatus('请输入选题'); return; }
-
-    if (!project.select) project.select = {};
-    project.select.topic = topic;
-
-    streamToOutput('select-output', '/api/pipeline/select', { topic, contentType }, (text) => {
-      project.select.result = text;
-      project.select.insights = text.slice(0, 500);
-    });
-  }
-
   function runAngle() {
     const topicEl = view.querySelector('#angle-topic');
     const topic = topicEl ? topicEl.value : (project.select?.topic || '');
@@ -693,7 +640,10 @@
     if (!project.angle) project.angle = {};
     project.angle.myPOV = myPOV;
 
-    streamToOutput('angle-output', '/api/pipeline/angle', { topic, myPOV, tier, selectInsights: project.select?.insights || '' }, (text) => {
+    const direction = project.select?.direction || '';
+    const feasibility = project.select?.feasibility || '';
+    const selectInsights = feasibility ? `可行性：${feasibility}\n建议方向：${direction}` : '';
+    streamToOutput('angle-output', '/api/pipeline/angle', { topic, myPOV, tier, direction, selectInsights }, (text) => {
       project.angle.result = text;
     });
   }
@@ -1116,7 +1066,7 @@
           <div class="project-info" data-action="load-project" data-id="${p.id}">
             <div class="project-title">${shared.escHtml(p.title)}</div>
             <div class="project-meta text-sm text-tertiary">
-              Step ${p.currentStep}/5 · ${p.format || '未选格式'} · ${shared.formatDate(p.updatedAt)}
+              Step ${Math.min(p.currentStep, 3)}/3 · ${p.format || '未选格式'} · ${shared.formatDate(p.updatedAt)}
             </div>
           </div>
           <button class="btn btn-ghost btn-sm text-danger" data-action="delete-project" data-id="${p.id}">删除</button>

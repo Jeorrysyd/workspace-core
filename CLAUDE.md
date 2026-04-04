@@ -3,7 +3,7 @@
 ## Overview
 
 A content production pipeline that transforms personal notes into publishable content.
-5-step flow: Discover → Select → Angle → Create → Polish.
+3-step flow: Discover → Angle → Create (Select merged into Discover, Polish merged into Create).
 All personalization via `.env` — zero hardcoded values.
 
 ## Setup
@@ -61,50 +61,45 @@ workspace-core/
 │   └── api.js                # HTTP client + SSE streaming
 ├── modules/
 │   └── pipeline/
-│       └── index.js          # Pipeline module (5-step UI, project management)
+│       └── index.js          # Pipeline module (3-step UI, project management)
 ├── server/
 │   ├── index.js              # Express entry + /api/config
 │   ├── routes/
-│   │   └── pipeline.js       # All pipeline API (projects CRUD + 5 steps + sources + drafts)
+│   │   └── pipeline.js       # All pipeline API (projects CRUD + 3 steps + sources + drafts)
 │   ├── services/
 │   │   ├── ai-provider.js    # Provider factory
 │   │   ├── providers/        # claude-cli.js, anthropic.js, shared.js
 │   │   ├── storage.js        # File-based project/draft storage
 │   │   ├── notes.js          # Markdown notes service (reads NOTES_DIR)
 │   │   └── memory.js         # Personal memory store
-│   └── skills/               # Skill prompt files (analyze.md, topics.md, draft.md)
+│   └── skills/               # Skill prompt files (analyze, topics, draft, select, angle, challenge, polish)
 └── data/                     # Runtime data (gitignored)
     ├── projects/             # Pipeline projects (proj-{uuid}.json)
     ├── drafts/               # Saved drafts (draft-{uuid}.json)
     └── builders/             # Cached builder digests
 ```
 
-## Pipeline (5 Steps)
+## Pipeline (3 Steps)
 
 ### Step 1: Discover
 - Scans NOTES_DIR notes by time range
 - Fetches external feeds (X/Twitter builders)
 - Freeform exploration (drift) and idea tracking (trace)
-- Output: topic candidates list
+- Each topic card includes feasibility assessment + suggested direction
+- Manual topic entry supported (skip scanning)
+- Output: topic candidates with scores, feasibility, direction
 
-### Step 2: Select
-- Feasibility analysis of chosen topic
-- Audience, stance space, risk assessment
-- Output: confirmed topic + direction
-
-### Step 3: Angle
+### Step 2: Angle
 - Generates angle card: hook, stance, evidence, skeleton
 - Challenge mode: stress-test your angle
 - Reference analysis: paste example content, extract structure
 - Output: complete angle card
 
-### Step 4: Create
+### Step 3: Create
 - Multiple output formats: short-video, xiaohongshu, article, academic, pitch
 - AI generates content based on angle card
-- Output: full content draft
-
-### Step 5: Polish
-- 7D quality audit (readability, analogies, logic, quotes, AI-smell, hook, ending)
+- Inline polish: one-click final draft generation
+- Optional 7D quality audit (readability, analogies, logic, quotes, AI-smell, hook, ending)
 - One-click polish to final draft
 - Save to drafts
 
@@ -116,13 +111,13 @@ GET/POST        /api/pipeline/projects
 GET/PUT/DELETE  /api/pipeline/projects/:id
 
 # Pipeline Steps (all SSE streaming)
-POST  /api/pipeline/discover
-POST  /api/pipeline/select
-POST  /api/pipeline/angle
-POST  /api/pipeline/angle/challenge
-POST  /api/pipeline/angle/reference
-POST  /api/pipeline/create
-POST  /api/pipeline/polish
+POST  /api/pipeline/discover       # Step 1: topic discovery (notes/feed/drift/trace)
+POST  /api/pipeline/select         # (legacy, kept for backward compat)
+POST  /api/pipeline/angle          # Step 2: angle card design
+POST  /api/pipeline/angle/challenge  # Step 2: stress-test angle
+POST  /api/pipeline/angle/reference  # Step 2: extract structure from example
+POST  /api/pipeline/create         # Step 3: generate content
+POST  /api/pipeline/polish         # Step 3: inline polish (review/final)
 
 # Sources
 GET   /api/pipeline/sources/notes
