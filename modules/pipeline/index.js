@@ -609,10 +609,9 @@
         if (msgEl) msgEl.innerHTML = `
           <div class="setup-success">
             <p>✓ 配置已保存</p>
-            <p class="text-sm text-secondary">正在重新加载...</p>
+            <p class="text-sm text-secondary">请在终端重启服务器（Ctrl+C，然后 <code>npm start</code>），再刷新页面。</p>
           </div>
         `;
-        setTimeout(() => window.location.reload(), 1500);
       }
     } catch (err) {
       if (msgEl) msgEl.innerHTML = `<p class="text-danger text-sm">配置失败: ${shared.escHtml(err.message)}</p>`;
