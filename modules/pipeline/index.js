@@ -327,7 +327,7 @@
           <div class="format-grid">
             ${[
               ['short-video', '📱 短视频口播稿'],
-              ['xiaohongshu', '📕 小红书图文'],
+              ['short-form', '📕 短内容图文'],
               ['article', '📝 深度文章'],
               ['academic', '🎓 学术风格'],
               ['pitch', '💼 商业方案']
@@ -360,9 +360,9 @@
               <button class="btn btn-ghost" data-action="run-headline">🏷️ 生成标题候选</button>
               <button class="btn btn-ghost" data-action="run-adapt">🔄 适配其他平台</button>
               <select class="select" id="adapt-target" style="width:auto">
-                <option value="xiaohongshu">→ 小红书</option>
+                <option value="short-form">→ 短内容图文</option>
                 <option value="short-video">→ 短视频口播稿</option>
-                <option value="article">→ 公众号文章</option>
+                <option value="article">→ 深度文章</option>
               </select>
             </div>
             <div class="output-area" id="headline-output">${project.create?.headlines ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.create.headlines)}</div>` : ''}</div>
@@ -768,7 +768,7 @@
   function runAdapt() {
     const content = project.polish?.final || project.create?.content || '';
     if (!content) { app.setStatus('请先生成内容'); return; }
-    const toFormat = (view.querySelector('#adapt-target') || {}).value || 'xiaohongshu';
+    const toFormat = (view.querySelector('#adapt-target') || {}).value || 'short-form';
 
     streamToOutput('adapt-output', '/api/pipeline/adapt', {
       content, fromFormat: selectedFormat, toFormat
@@ -786,7 +786,7 @@
         title: project.title || project.select?.topic || '未命名',
         content,
         type: project.create?.format || 'article',
-        platform: selectedFormat === 'xiaohongshu' ? '小红书' : '通用'
+        platform: selectedFormat === 'short-form' ? '短内容' : '通用'
       });
       app.setStatus('草稿已保存');
     } catch (err) {
