@@ -32,7 +32,7 @@ const skills = {
   analyze: loadSkill('analyze'),
   topics: loadSkill('topics'),
   draft: loadSkill('draft'),
-  select: loadSkill('select'),
+
   angle: loadSkill('angle'),
   challenge: loadSkill('challenge'),
   polish: loadSkill('polish'),
@@ -328,32 +328,6 @@ ${soul ? `用户的个人画像：\n${soul}` : ''}${TOPIC_JSON_INSTRUCTION}`;
     const archiveContext = notes.getRecentContext({ maxAge: 60, limit: 20, maxChars: 1200 });
     await claude.streamResponse(res, systemPrompt, `追踪主题：${keyword || '（未指定）'}\n\n${archiveContext || '（暂无记录）'}`);
   }
-});
-
-// ══════════════════════════════════════════════════════════════════════════════
-// STEP 2: SELECT — analyze feasibility of a topic
-// ══════════════════════════════════════════════════════════════════════════════
-
-router.post('/select', async (req, res) => {
-  const { topic, contentType, sources } = req.body;
-  if (!topic) return res.status(400).json({ error: '请输入选题' });
-
-  const soul = readSoulMd();
-  const personalBg = getPersonalBackground();
-  const type = contentType === 'social' ? '自媒体内容' : '科普/深度文章';
-
-  const systemPrompt = `${skills.select}\n\n${personalBg}
-
-${soul ? `用户的个人画像：\n${soul}` : ''}`;
-
-  let userMessage = `选题：${topic}\n内容类型：${type}`;
-  if (Array.isArray(sources) && sources.length > 0) {
-    userMessage += `\n\n相关素材来源：\n${sources.map(s =>
-      `- ${s.name || '未知'}: "${(s.quote || '').slice(0, 200)}"${s.url ? ` (${s.url})` : ''}`
-    ).join('\n')}`;
-  }
-  userMessage += '\n\n请分析这个选题的可行性。';
-  await claude.streamResponse(res, systemPrompt, userMessage, ['WebSearch']);
 });
 
 // ══════════════════════════════════════════════════════════════════════════════

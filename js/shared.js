@@ -19,24 +19,6 @@ const shared = {
    * @param {object} [options] - Optional: { label, avatarText }
    * @returns {HTMLElement} The created message element
    */
-  addMessage(container, role, text, options = {}) {
-    if (!container) return null;
-
-    const avatarText = options.avatarText || (role === 'ai' ? 'AI' : 'Me');
-    const roleClass = role === 'ai' ? 'ai' : 'user';
-
-    const el = document.createElement('div');
-    el.className = `dialogue-msg dialogue-msg-${roleClass}`;
-    el.innerHTML = `
-      <div class="msg-avatar">${shared.escHtml(avatarText)}</div>
-      <div class="msg-bubble">
-        ${options.label ? `<div class="text-xs text-tertiary mb-sm" style="font-weight:500;opacity:0.7">${shared.escHtml(options.label)}</div>` : ''}
-        <div class="msg-text" style="white-space:pre-wrap; line-height:1.8; word-break:break-word">${shared.escHtml(text)}</div>
-      </div>
-    `;
-    container.appendChild(el);
-    return el;
-  },
 
   /**
    * Scroll a container to bottom
