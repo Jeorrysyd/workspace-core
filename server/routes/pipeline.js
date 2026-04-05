@@ -45,17 +45,55 @@ const FEED_BASE_URL = 'https://raw.githubusercontent.com/zarazhangrui/follow-bui
 const BUILDERS_DIR = path.join(__dirname, '..', '..', 'data', 'builders');
 if (!fs.existsSync(BUILDERS_DIR)) fs.mkdirSync(BUILDERS_DIR, { recursive: true });
 
-// Structured topic output instruction — includes feasibility assessment per topic
+// Structured topic output instruction — includes feasibility, sources, and format per topic
 const TOPIC_JSON_INSTRUCTION = `
 
-最后，请在回答末尾输出结构化选题列表，格式如下（必须是合法JSON）：
+最后，请在回答末尾输出结构化选题列表，按推荐优先级排序，格式如下（必须是合法JSON）：
 \`\`\`json:topics
-[{"title":"选题标题","summary":"一句话概述","score":"高|中|低","feasibility":"一句话可行性判断：素材是否充足、是否有独特立场、风险如何","direction":"建议的内容方向或切入角度"}]
+[{
+  "title": "选题标题",
+  "summary": "一句话概述",
+  "score": "高|中|低",
+  "recommended": true,
+  "feasibility": "一句话可行性判断：素材是否充足、是否有独特立场、风险如何",
+  "direction": "建议的内容方向或切入角度",
+  "sources": [{"name": "信息来源人名或媒体名", "quote": "关键原文片段（1-2句）", "url": "原文链接"}],
+  "format": "短视频|小红书|深度文章|thread"
+}]
 \`\`\`
-
-对每个选题，在给出 score 的同时，也要评估其可行性(feasibility)和建议方向(direction)。这样用户可以直接从选题卡片做出决策，无需额外分析步骤。`;
+说明：
+- 第一个选题的 recommended 设为 true，其余为 false
+- feasibility：一句话评估可行性（素材充足度、独特立场、风险）
+- direction：建议的内容方向或切入角度
+- sources 数组：列出支撑该选题的 1-3 个关键来源，每个必须包含 url。如果来源是笔记则 url 留空字符串
+- format：推荐最适合的内容形式`;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
+
+const DEDUP_FILE = path.join(BUILDERS_DIR, 'discover-history.json');
+const DEDUP_MAX_RUNS = 5;
+
+function loadDedupHistory() {
+  try {
+    if (!fs.existsSync(DEDUP_FILE)) return [];
+    const data = JSON.parse(fs.readFileSync(DEDUP_FILE, 'utf-8'));
+    // Flatten all titles from recent runs
+    return (data.runs || []).flatMap(r => r.titles || []);
+  } catch { return []; }
+}
+
+function saveDedupHistory(titles) {
+  try {
+    let data = { runs: [] };
+    if (fs.existsSync(DEDUP_FILE)) {
+      data = JSON.parse(fs.readFileSync(DEDUP_FILE, 'utf-8'));
+    }
+    data.runs = [{ date: new Date().toISOString(), titles }, ...(data.runs || [])].slice(0, DEDUP_MAX_RUNS);
+    fs.writeFileSync(DEDUP_FILE, JSON.stringify(data, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('[pipeline] Failed to save dedup history:', err.message);
+  }
+}
 
 function readSoulMd() {
   return notes.getNoteContent('soul.md') || '';
@@ -138,6 +176,18 @@ router.delete('/projects/:id', async (req, res) => {
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
+// DISCOVER DEDUP — record topic titles to avoid repeated recommendations
+// ══════════════════════════════════════════════════════════════════════════════
+
+router.post('/discover/dedup', (req, res) => {
+  const { titles } = req.body;
+  if (Array.isArray(titles) && titles.length > 0) {
+    saveDedupHistory(titles);
+  }
+  res.json({ success: true });
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
 // SOURCES (notes + external feeds)
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -202,10 +252,15 @@ ${soul ? `用户的个人画像：\n${soul}` : ''}${TOPIC_JSON_INSTRUCTION}`;
     await claude.streamResponse(res, systemPrompt, userMessage);
 
   } else if (discoverMode === 'feed') {
-    // Fetch external feed and summarize
-    const xFeed = await fetchFeed('feed-x.json').catch(() => ({ x: [], stats: {} }));
+    // Fetch external feeds (tweets + podcasts) in parallel
+    const [xFeed, podFeed] = await Promise.all([
+      fetchFeed('feed-x.json').catch(() => ({ x: [] })),
+      fetchFeed('feed-podcasts.json').catch(() => ({ podcasts: [] }))
+    ]);
     const xBuilders = xFeed.x || [];
-    if (xBuilders.length === 0) {
+    const podcasts = podFeed.podcasts || [];
+
+    if (xBuilders.length === 0 && podcasts.length === 0) {
       startSSE(res);
       sendSSE(res, '⚠️ 没有找到外部信息源数据。');
       endSSE(res);
@@ -219,13 +274,29 @@ ${soul ? `用户的个人画像：\n${soul}` : ''}${TOPIC_JSON_INSTRUCTION}`;
       }))
     })).filter(b => b.tweets.length > 0);
 
+    const podcastData = podcasts.slice(0, 2).map(p => ({
+      source: 'podcast', name: p.name, title: p.title, url: p.url,
+      transcript: p.transcript?.slice(0, 3000) || ''
+    }));
+
+    // Load dedup history
+    const dedupTitles = loadDedupHistory();
+    const dedupNote = dedupTitles.length > 0
+      ? `\n\n以下选题最近已推荐过，请避免重复：\n${dedupTitles.map(t => `- ${t}`).join('\n')}`
+      : '';
+
     const systemPrompt = `${skills.topics}\n\n${personalBg}
 
-补充指令：分析的是 AI 行业领袖的最新动态（非个人笔记）。优先选择：外网已火但中文圈没人讲的（信息差高）、有争议性的、可以结合个人经验的。
+补充指令：分析的是 AI 行业领袖的最新动态和播客内容（非个人笔记）。
+信息源包含两类数据：Builder 动态（X/Twitter 推文）和播客（深度对话文字稿）。
+优先选择：外网已火但中文圈没人讲的（信息差高）、有争议性的、可以结合个人经验的。
+每个选题必须标注具体信息来源（谁说的、哪期播客），附带原文关键片段和链接。${dedupNote}
 
 ${soul ? `用户的个人画像：\n${soul}` : ''}${TOPIC_JSON_INSTRUCTION}`;
 
-    await claude.streamResponse(res, systemPrompt, JSON.stringify(tweetData, null, 2));
+    const feedPayload = { builders: tweetData };
+    if (podcastData.length > 0) feedPayload.podcasts = podcastData;
+    await claude.streamResponse(res, systemPrompt, JSON.stringify(feedPayload, null, 2));
 
   } else if (discoverMode === 'drift') {
     // Free-form idea exploration — uses analyze skill to find patterns
@@ -233,8 +304,9 @@ ${soul ? `用户的个人画像：\n${soul}` : ''}${TOPIC_JSON_INSTRUCTION}`;
 
 补充指令：在完成笔记分类后，重点执行以下分析：
 1. **暗流扫描**：找出至少 3 个反复提及但从未被写成内容的主题
-2. **选题转化**：每个暗流主题如何变成一个有吸引力的内容选题？给出标题建议和角度
-3. **张力分析**：这些主题之间是否有冲突或对立？冲突本身就是好选题
+2. **证据链**：每个主题引用至少 2 条具体记录
+3. **选题转化**：每个暗流主题如何变成一个有吸引力的内容选题？给出标题建议和角度
+4. **张力分析**：这些主题之间是否有冲突或对立？冲突本身就是好选题
 
 ${soul ? `用户的个人画像：\n${soul}` : ''}${TOPIC_JSON_INSTRUCTION}`;
 
@@ -249,7 +321,7 @@ ${soul ? `用户的个人画像：\n${soul}` : ''}${TOPIC_JSON_INSTRUCTION}`;
 1. **首次出现**：最早的记录和原始表述
 2. **演变时间线**：按时间顺序列出提及记录
 3. **转折点**：思想发生重大变化的节点
-4. **选题潜力**：这个主题现在处于什么阶段？是否适合变成内容？如果适合，建议什么角度？
+4. **选题潜力**：这个主题现在处于什么阶段？是否适合变成内容？如果适合，按推荐优先级给出角度建议，第一个标注 ⭐ 并说明为什么最值得先做。
 
 ${soul ? `用户的个人画像：\n${soul}` : ''}${TOPIC_JSON_INSTRUCTION}`;
 
@@ -263,7 +335,7 @@ ${soul ? `用户的个人画像：\n${soul}` : ''}${TOPIC_JSON_INSTRUCTION}`;
 // ══════════════════════════════════════════════════════════════════════════════
 
 router.post('/select', async (req, res) => {
-  const { topic, contentType } = req.body;
+  const { topic, contentType, sources } = req.body;
   if (!topic) return res.status(400).json({ error: '请输入选题' });
 
   const soul = readSoulMd();
@@ -274,7 +346,13 @@ router.post('/select', async (req, res) => {
 
 ${soul ? `用户的个人画像：\n${soul}` : ''}`;
 
-  const userMessage = `选题：${topic}\n内容类型：${type}\n\n请分析这个选题的可行性。`;
+  let userMessage = `选题：${topic}\n内容类型：${type}`;
+  if (Array.isArray(sources) && sources.length > 0) {
+    userMessage += `\n\n相关素材来源：\n${sources.map(s =>
+      `- ${s.name || '未知'}: "${(s.quote || '').slice(0, 200)}"${s.url ? ` (${s.url})` : ''}`
+    ).join('\n')}`;
+  }
+  userMessage += '\n\n请分析这个选题的可行性。';
   await claude.streamResponse(res, systemPrompt, userMessage, ['WebSearch']);
 });
 
@@ -365,6 +443,9 @@ router.post('/create', async (req, res) => {
   const systemPrompt = `${skills.draft}\n\n${personalBg}
 
 当前输出格式：${formatNames[format] || '深度文章'}
+
+生成完成后，在内容最后附一行自评：
+📊 完成度自评：[X/10] — [一句话说明最需要打磨的地方，或"可以直接进入审核"]
 
 ${soul ? `用户的个人画像：\n${soul}` : ''}`;
 

@@ -489,6 +489,8 @@
         project.select.summary = t.summary;
         project.select.direction = t.direction || '';
         project.select.feasibility = t.feasibility || '';
+        project.select.sources = t.sources || [];
+        project.select.format = t.format || '';
         // Highlight picked card
         view.querySelectorAll('.topic-card').forEach((c, i) => {
           c.classList.toggle('picked', i === idx);
@@ -630,13 +632,15 @@
           <p class="text-sm text-secondary" style="margin-bottom:var(--space-sm)">🏷️ 选取一个选题，直接进入角度设计：</p>
           <div class="topic-cards-grid">
             ${topics.map((t, i) => `
-              <div class="topic-card" data-action="pick-topic" data-idx="${i}">
-                <div class="topic-card-title">${shared.escHtml(t.title || '')}</div>
+              <div class="topic-card${t.recommended ? ' topic-card--recommended' : ''}" data-action="pick-topic" data-idx="${i}">
+                <div class="topic-card-title">${t.recommended ? '⭐ ' : ''}${shared.escHtml(t.title || '')}</div>
                 <div class="topic-card-summary text-sm text-secondary">${shared.escHtml(t.summary || '')}</div>
                 ${t.feasibility ? `<div class="topic-card-feasibility text-xs text-tertiary" style="margin:var(--space-xs) 0;font-style:italic">${shared.escHtml(t.feasibility)}</div>` : ''}
                 ${t.direction ? `<div class="topic-card-direction text-xs" style="color:var(--accent);margin-bottom:var(--space-xs)">→ ${shared.escHtml(t.direction)}</div>` : ''}
+                ${renderTopicSources(t.sources)}
                 <div class="topic-card-footer">
                   <span class="topic-card-score" style="color:${scoreColor[t.score] || 'var(--text-tertiary)'}">信息差：${shared.escHtml(t.score || '—')}</span>
+                  ${t.format ? `<span class="topic-card-format">${shared.escHtml(t.format)}</span>` : ''}
                   <span class="topic-card-pick">选取 →</span>
                 </div>
               </div>
@@ -648,9 +652,31 @@
 
       // Store parsed topics for pick handler
       project._discoverTopics = topics;
+
+      // Save topic titles for dedup (fire-and-forget)
+      const titles = topics.map(t => t.title).filter(Boolean);
+      if (titles.length > 0) {
+        api.post('/api/pipeline/discover/dedup', { titles }).catch(() => {});
+      }
     } catch {
       // JSON parse failed — graceful degradation, no cards shown
     }
+  }
+
+  function renderTopicSources(sources) {
+    if (!Array.isArray(sources) || sources.length === 0) return '';
+    return `<div class="topic-card-sources">${sources.map(s => {
+      const name = shared.escHtml(s.name || '');
+      const quote = shared.escHtml((s.quote || '').slice(0, 80));
+      if (s.url) {
+        return `<a href="${shared.escHtml(s.url)}" target="_blank" rel="noopener" class="topic-source">
+          <span class="source-name">${name}</span>
+          <span class="source-quote">"${quote}${(s.quote || '').length > 80 ? '...' : ''}"</span>
+          <span class="source-link">↗</span>
+        </a>`;
+      }
+      return `<span class="topic-source"><span class="source-name">${name}</span><span class="source-quote">"${quote}"</span></span>`;
+    }).join('')}</div>`;
   }
 
   function runAngle() {

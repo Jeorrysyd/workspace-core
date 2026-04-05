@@ -874,6 +874,9 @@ a:hover {
   border-color: var(--accent);
   box-shadow: 0 2px 8px rgba(0,0,0,0.06);
 }
+.topic-card--recommended {
+  border-left: 3px solid var(--accent);
+}
 .topic-card.picked {
   border-color: var(--accent);
   background: var(--bg-secondary);
@@ -896,6 +899,47 @@ a:hover {
 }
 .topic-card-score {
   font-size: var(--text-xs);
+}
+.topic-card-sources {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 2px;
+}
+.topic-source {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  text-decoration: none;
+  line-height: 1.4;
+}
+a.topic-source:hover {
+  color: var(--accent);
+}
+.source-name {
+  font-weight: 500;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.source-quote {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.source-link {
+  flex-shrink: 0;
+  font-size: 10px;
+}
+.topic-card-format {
+  font-size: var(--text-xs);
+  color: var(--accent);
+  background: var(--bg-secondary);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
 }
 .topic-card-pick {
   font-size: var(--text-sm);
