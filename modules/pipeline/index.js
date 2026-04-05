@@ -192,9 +192,14 @@
 
         <div class="discover-modes">
           <button class="btn ${selectedMode === 'notes' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="notes">📝 从笔记发现</button>
-          <button class="btn ${selectedMode === 'feed' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="feed">🌐 从外部信息源</button>
-          <button class="btn ${selectedMode === 'drift' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="drift">💭 自由发散</button>
-          <button class="btn ${selectedMode === 'trace' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="trace">🔎 追踪主题</button>
+          <details class="discover-more-modes" style="display:inline">
+            <summary class="btn btn-ghost" style="display:inline-flex;list-style:none;cursor:pointer">更多发现方式 ▾</summary>
+            <div style="display:flex;gap:var(--space-xs);margin-top:var(--space-xs)">
+              <button class="btn ${selectedMode === 'feed' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="feed">🌐 外部信息源</button>
+              <button class="btn ${selectedMode === 'drift' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="drift">💭 自由发散</button>
+              <button class="btn ${selectedMode === 'trace' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="trace">🔎 追踪主题</button>
+            </div>
+          </details>
         </div>
 
         <div class="discover-options" id="discover-options" style="display:${selectedMode === 'notes' ? '' : 'none'}">
@@ -341,13 +346,28 @@
           <h4 style="font-family:var(--font-heading);font-size:var(--text-base);font-weight:500;margin-bottom:var(--space-sm)">润色与终稿</h4>
           <div class="input-group" style="flex-direction:row;flex-wrap:wrap;gap:var(--space-sm)">
             <button class="btn btn-primary" data-action="run-final">🔧 一键生成终稿</button>
-            <button class="btn btn-ghost" data-action="run-review">📊 7D 质量审计（可选）</button>
+            <button class="btn btn-ghost" data-action="run-review">📊 质量审计（可选）</button>
             <button class="btn btn-secondary" data-action="save-draft">💾 保存为草稿</button>
           </div>
 
           <div class="output-area" id="polish-review-output">${hasPolish?.review ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.polish.review)}</div>` : ''}</div>
           ${hasPolish?.review && hasPolish?.final ? '<hr style="margin:var(--space-md) 0">' : ''}
           <div class="output-area" id="polish-final-output">${hasPolish?.final ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.polish.final)}</div>` : ''}</div>
+
+          <div style="margin-top:var(--space-md);padding-top:var(--space-md);border-top:1px solid var(--border)">
+            <h4 style="font-family:var(--font-heading);font-size:var(--text-base);font-weight:500;margin-bottom:var(--space-sm)">扩展工具</h4>
+            <div class="input-group" style="flex-direction:row;flex-wrap:wrap;gap:var(--space-sm);align-items:center">
+              <button class="btn btn-ghost" data-action="run-headline">🏷️ 生成标题候选</button>
+              <button class="btn btn-ghost" data-action="run-adapt">🔄 适配其他平台</button>
+              <select class="select" id="adapt-target" style="width:auto">
+                <option value="xiaohongshu">→ 小红书</option>
+                <option value="short-video">→ 短视频口播稿</option>
+                <option value="article">→ 公众号文章</option>
+              </select>
+            </div>
+            <div class="output-area" id="headline-output">${project.create?.headlines ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.create.headlines)}</div>` : ''}</div>
+            <div class="output-area" id="adapt-output">${project.create?.adapted ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.create.adapted)}</div>` : ''}</div>
+          </div>
         </div>
         ` : ''}
       </div>
@@ -382,7 +402,8 @@
   }
 
   const AI_ACTIONS = new Set(['start-discover', 'run-angle', 'run-challenge',
-    'run-ref-analyze', 'run-ref-extract', 'run-create', 'run-review', 'run-final']);
+    'run-ref-analyze', 'run-ref-extract', 'run-create', 'run-review', 'run-final',
+    'run-headline', 'run-adapt']);
 
   function handleClick(e) {
     const btn = e.target.closest('[data-action]');
@@ -509,9 +530,11 @@
     }
     if (action === 'run-create') { runCreate(); return; }
 
-    // Step 5: Polish
+    // Step 3: Polish + Extend
     if (action === 'run-review') { runPolish('review'); return; }
     if (action === 'run-final') { runPolish('final'); return; }
+    if (action === 'run-headline') { runHeadline(); return; }
+    if (action === 'run-adapt') { runAdapt(); return; }
     if (action === 'save-draft') { saveDraft(); return; }
   }
 
@@ -700,6 +723,32 @@
       if (!project.polish) project.polish = {};
       if (mode === 'review') project.polish.review = text;
       else project.polish.final = text;
+    });
+  }
+
+  function runHeadline() {
+    const content = project.polish?.final || project.create?.content || '';
+    const topic = project.select?.topic || '';
+    if (!content && !topic) { app.setStatus('请先生成内容'); return; }
+
+    streamToOutput('headline-output', '/api/pipeline/headline', {
+      content, format: selectedFormat, topic
+    }, (text) => {
+      if (!project.create) project.create = {};
+      project.create.headlines = text;
+    });
+  }
+
+  function runAdapt() {
+    const content = project.polish?.final || project.create?.content || '';
+    if (!content) { app.setStatus('请先生成内容'); return; }
+    const toFormat = (view.querySelector('#adapt-target') || {}).value || 'xiaohongshu';
+
+    streamToOutput('adapt-output', '/api/pipeline/adapt', {
+      content, fromFormat: selectedFormat, toFormat
+    }, (text) => {
+      if (!project.create) project.create = {};
+      project.create.adapted = text;
     });
   }
 

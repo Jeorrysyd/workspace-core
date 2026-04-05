@@ -72,7 +72,7 @@ workspace-core/
 │   │   ├── storage.js        # File-based project/draft storage
 │   │   ├── notes.js          # Markdown notes service (reads NOTES_DIR)
 │   │   └── memory.js         # Personal memory store
-│   └── skills/               # Skill prompt files (analyze, topics, draft, select, angle, challenge, polish)
+│   └── skills/               # Skill prompt files (analyze, topics, draft, select, angle, challenge, polish, headline, adapt)
 └── data/                     # Runtime data (gitignored)
     ├── projects/             # Pipeline projects (proj-{uuid}.json)
     ├── drafts/               # Saved drafts (draft-{uuid}.json)
@@ -101,6 +101,8 @@ workspace-core/
 - Inline polish: one-click final draft generation
 - Optional 7D quality audit (readability, analogies, logic, quotes, AI-smell, hook, ending)
 - One-click polish to final draft
+- Headline generation: 10 title candidates with platform optimization
+- Cross-platform adaptation: one-click repurpose to other formats
 - Save to drafts
 
 ## API Endpoints
@@ -118,6 +120,8 @@ POST  /api/pipeline/angle/challenge  # Step 2: stress-test angle
 POST  /api/pipeline/angle/reference  # Step 2: extract structure from example
 POST  /api/pipeline/create         # Step 3: generate content
 POST  /api/pipeline/polish         # Step 3: inline polish (review/final)
+POST  /api/pipeline/headline       # Step 3: generate title candidates
+POST  /api/pipeline/adapt          # Step 3: cross-platform adaptation
 
 # Sources
 GET   /api/pipeline/sources/notes

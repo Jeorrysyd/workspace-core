@@ -36,6 +36,8 @@ const skills = {
   angle: loadSkill('angle'),
   challenge: loadSkill('challenge'),
   polish: loadSkill('polish'),
+  headline: loadSkill('headline'),
+  adapt: loadSkill('adapt'),
 };
 
 // ── Builders feed config ────────────────────────────────────────────────────
@@ -192,15 +194,7 @@ router.post('/discover', async (req, res) => {
     }
 
     const notesText = notesList.map(n => `--- ${n.name} ---\n${n.content}`).join('\n\n');
-    const systemPrompt = `你是一个内容选题发现引擎。${personalBg}
-
-分析用户的个人笔记，找出有内容生产潜力的选题方向。
-
-要求：
-1. 从笔记中提取 5-8 个可以变成内容的选题
-2. 每个选题包含：标题、角度简述、素材来源（哪几篇笔记）、信息差评分（高/中/低）、个人契合度评分（高/中/低）
-3. 优先选择：有独特个人视角的、有信息差的、素材充足的
-4. 用 Markdown 列表格式输出
+    const systemPrompt = `${skills.topics}\n\n${personalBg}
 
 ${soul ? `用户的个人画像：\n${soul}` : ''}${TOPIC_JSON_INSTRUCTION}`;
 
@@ -225,28 +219,22 @@ ${soul ? `用户的个人画像：\n${soul}` : ''}${TOPIC_JSON_INSTRUCTION}`;
       }))
     })).filter(b => b.tweets.length > 0);
 
-    const systemPrompt = `你是一个内容选题发现引擎。分析AI行业领袖的最新动态，找出有内容生产价值的选题。${personalBg}
+    const systemPrompt = `${skills.topics}\n\n${personalBg}
 
-要求：
-1. 从这些动态中提取 5-8 个选题方向
-2. 优先选择：外网已火但中文圈没人讲的（信息差高）、有争议性的、可以结合个人经验的
-3. 每个选题标注：标题、信息来源、信息差评分、建议角度
-4. 用 Markdown 列表格式输出
+补充指令：分析的是 AI 行业领袖的最新动态（非个人笔记）。优先选择：外网已火但中文圈没人讲的（信息差高）、有争议性的、可以结合个人经验的。
 
 ${soul ? `用户的个人画像：\n${soul}` : ''}${TOPIC_JSON_INSTRUCTION}`;
 
     await claude.streamResponse(res, systemPrompt, JSON.stringify(tweetData, null, 2));
 
   } else if (discoverMode === 'drift') {
-    // Free-form idea exploration (from Dialogue /drift)
-    const systemPrompt = `你是${OWNER_NAME}的创作灵感探索伙伴。${personalBg}
+    // Free-form idea exploration — uses analyze skill to find patterns
+    const systemPrompt = `${skills.analyze}\n\n${personalBg}
 
-请仔细阅读用户的个人记录，执行以下分析：
-
-1. **暗流扫描**：找出至少 3 个反复提及但从未被写成内容的主题。
-2. **证据链**：每个主题引用至少 2 条具体记录。
-3. **选题转化**：每个暗流主题如何变成一个有吸引力的内容选题？给出标题建议和角度。
-4. **张力分析**：这些主题之间是否有冲突或对立？冲突本身就是好选题。
+补充指令：在完成笔记分类后，重点执行以下分析：
+1. **暗流扫描**：找出至少 3 个反复提及但从未被写成内容的主题
+2. **选题转化**：每个暗流主题如何变成一个有吸引力的内容选题？给出标题建议和角度
+3. **张力分析**：这些主题之间是否有冲突或对立？冲突本身就是好选题
 
 ${soul ? `用户的个人画像：\n${soul}` : ''}${TOPIC_JSON_INSTRUCTION}`;
 
@@ -366,48 +354,17 @@ router.post('/create', async (req, res) => {
   const personalBg = getPersonalBackground();
   const soul = readSoulMd();
 
-  const formatPrompts = {
-    'short-video': `写一篇短视频口播稿。要求：
-- 时长约 60-90 秒（300-450 字）
-- 纯口语化，像朋友在聊天
-- 有明确立场和态度
-- 结构：钩子 → 降维 → 案例×3 → 立场 → 行动
-- 标注 [停顿]、[加重]、[轻松] 等语气提示
-- 不要用"大家好我是..."开头`,
-
-    'xiaohongshu': `写一篇小红书图文。要求：
-- 标题：有钩子感，可适当用 emoji
-- 正文：800-1200 字，分段清晰
-- 口语化但有信息密度
-- 每段有一个可被截屏传播的金句
-- 结尾带 3-5 个相关 tag
-- 附带封面文案建议`,
-
-    'article': `写一篇深度文章。要求：
-- 写作哲学：说人话 / 有温度 / 有洞察 / 有节制
-- 带结构标注：[🟡 HOOK] [🟢 GOLDEN] [🔵 ANALOGY] [🟣 CLOSE] [🔴 NEED_VERIFY] [🟠 AI_SMELL]
-- 全文末尾附统计：字数/金句数/待核实处`,
-
-    'academic': `写一篇学术风格内容。要求：
-- 严谨的逻辑结构
-- 引用驱动，标注信息来源
-- 避免口语化，保持客观中立
-- 提供摘要和关键词
-- 适当使用术语但确保可读性`,
-
-    'pitch': `写一篇商业方案/pitch 风格内容。要求：
-- 开头直击痛点
-- 数据驱动，ROI 导向
-- 简洁有力，每句都有价值
-- 结构清晰：问题→方案→证据→行动
-- 适合给决策者看的密度和节奏`
+  const formatNames = {
+    'short-video': '短视频口播稿',
+    'xiaohongshu': '小红书图文',
+    'article': '深度文章',
+    'academic': '学术风格',
+    'pitch': '商业方案/Pitch'
   };
 
-  const formatInstr = formatPrompts[format] || formatPrompts['article'];
+  const systemPrompt = `${skills.draft}\n\n${personalBg}
 
-  const systemPrompt = `你是一个有温度、有洞察力的内容创作者。${personalBg}
-
-${formatInstr}
+当前输出格式：${formatNames[format] || '深度文章'}
 
 ${soul ? `用户的个人画像：\n${soul}` : ''}`;
 
@@ -444,6 +401,35 @@ router.post('/polish', async (req, res) => {
     : `以下是需要修订的内容：\n\n${content}`;
 
   await claude.streamResponse(res, system, userMessage);
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// HEADLINE — generate title candidates
+// ══════════════════════════════════════════════════════════════════════════════
+
+router.post('/headline', async (req, res) => {
+  const { content, format, topic } = req.body;
+  if (!content && !topic) return res.status(400).json({ error: '请提供内容或选题' });
+
+  const systemPrompt = `${skills.headline}\n\n当前格式：${format || '通用'}`;
+  const userMessage = content
+    ? `请为以下内容生成标题候选：\n\n${content.slice(0, 5000)}`
+    : `请为以下选题生成标题候选：\n\n${topic}`;
+  await claude.streamResponse(res, systemPrompt, userMessage);
+});
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ADAPT — cross-platform content adaptation
+// ══════════════════════════════════════════════════════════════════════════════
+
+router.post('/adapt', async (req, res) => {
+  const { content, fromFormat, toFormat } = req.body;
+  if (!content) return res.status(400).json({ error: '请提供内容' });
+  if (!toFormat) return res.status(400).json({ error: '请选择目标格式' });
+
+  const systemPrompt = skills.adapt;
+  const userMessage = `原始平台/格式：${fromFormat || '文章'}\n目标平台/格式：${toFormat}\n\n原始内容：\n${content}`;
+  await claude.streamResponse(res, systemPrompt, userMessage);
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
