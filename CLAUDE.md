@@ -45,6 +45,7 @@ PORT=3456
 APP_NAME=AI Content Pipeline  # Shown in UI header
 OWNER_NAME=User               # Injected into AI prompts
 NOTES_DIR=~/path/to/notes     # Markdown notes folder (optional)
+FEED_BASE_URL=                # External feed URL prefix (optional, enables feed discovery)
 ```
 
 ## Project Structure
@@ -94,7 +95,7 @@ workspace-core/
 - Output: complete angle card
 
 ### Step 3: Create
-- Multiple output formats: short-video, xiaohongshu, article, academic, pitch
+- Multiple output formats: short-video, short-form, article, academic, pitch
 - AI generates content based on angle card
 - Inline polish: one-click final draft generation
 - Optional 7D quality audit (readability, analogies, logic, quotes, AI-smell, hook, ending)

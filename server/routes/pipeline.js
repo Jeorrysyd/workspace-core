@@ -41,7 +41,7 @@ const skills = {
 };
 
 // ── Builders feed config ────────────────────────────────────────────────────
-const FEED_BASE_URL = 'https://raw.githubusercontent.com/zarazhangrui/follow-builders/main';
+const FEED_BASE_URL = process.env.FEED_BASE_URL || '';
 const BUILDERS_DIR = path.join(__dirname, '..', '..', 'data', 'builders');
 if (!fs.existsSync(BUILDERS_DIR)) fs.mkdirSync(BUILDERS_DIR, { recursive: true });
 
@@ -58,7 +58,7 @@ const TOPIC_JSON_INSTRUCTION = `
   "feasibility": "一句话可行性判断：素材是否充足、是否有独特立场、风险如何",
   "direction": "建议的内容方向或切入角度",
   "sources": [{"name": "信息来源人名或媒体名", "quote": "关键原文片段（1-2句）", "url": "原文链接"}],
-  "format": "短视频|小红书|深度文章|thread"
+  "format": "短视频|短内容|深度文章|thread"
 }]
 \`\`\`
 说明：
@@ -130,6 +130,7 @@ async function fetchFeed(feedFile) {
       return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     }
   }
+  if (!FEED_BASE_URL) throw new Error('Feed not configured — set FEED_BASE_URL in .env');
   const url = `${FEED_BASE_URL}/${feedFile}`;
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`Failed to fetch ${feedFile}: ${resp.status}`);
@@ -408,7 +409,7 @@ router.post('/create', async (req, res) => {
 
   const formatNames = {
     'short-video': '短视频口播稿',
-    'xiaohongshu': '小红书图文',
+    'short-form': '短内容图文',
     'article': '深度文章',
     'academic': '学术风格',
     'pitch': '商业方案/Pitch'
