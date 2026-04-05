@@ -34,7 +34,6 @@ server/services/
     anthropic.js          # Anthropic SDK provider (native streaming)
   storage.js              # File-based project/draft storage
   notes.js                # Markdown notes reader (NOTES_DIR)
-  memory.js               # Personal memory store
 ```
 
 ## .env Variables
@@ -56,7 +55,7 @@ workspace-core/
 ├── index.html                # Main shell (single page)
 ├── css/base.css              # Design system + Pipeline UI styles
 ├── js/
-│   ├── shared.js             # Shared UI utilities (escHtml, addMessage, formatDate)
+│   ├── shared.js             # Shared UI utilities (escHtml, formatDate)
 │   ├── app.js                # Core: module registry + event bus
 │   └── api.js                # HTTP client + SSE streaming
 ├── modules/
@@ -70,9 +69,8 @@ workspace-core/
 │   │   ├── ai-provider.js    # Provider factory
 │   │   ├── providers/        # claude-cli.js, anthropic.js, shared.js
 │   │   ├── storage.js        # File-based project/draft storage
-│   │   ├── notes.js          # Markdown notes service (reads NOTES_DIR)
-│   │   └── memory.js         # Personal memory store
-│   └── skills/               # Skill prompt files (analyze, topics, draft, select, angle, challenge, polish, headline, adapt)
+│   │   └── notes.js          # Markdown notes service (reads NOTES_DIR)
+│   └── skills/               # Skill prompt files (analyze, topics, draft, angle, challenge, polish, headline, adapt)
 └── data/                     # Runtime data (gitignored)
     ├── projects/             # Pipeline projects (proj-{uuid}.json)
     ├── drafts/               # Saved drafts (draft-{uuid}.json)
@@ -114,7 +112,7 @@ GET/PUT/DELETE  /api/pipeline/projects/:id
 
 # Pipeline Steps (all SSE streaming)
 POST  /api/pipeline/discover       # Step 1: topic discovery (notes/feed/drift/trace)
-POST  /api/pipeline/select         # (legacy, kept for backward compat)
+
 POST  /api/pipeline/angle          # Step 2: angle card design
 POST  /api/pipeline/angle/challenge  # Step 2: stress-test angle
 POST  /api/pipeline/angle/reference  # Step 2: extract structure from example
@@ -137,7 +135,7 @@ PUT/DELETE      /api/pipeline/drafts/:id
 - **No framework** — vanilla JS with IIFE module pattern
 - **Event delegation** — click handlers use `data-action` attributes
 - **Single module** — pipeline/index.js handles all UI
-- **Shared utilities** — `js/shared.js` provides escHtml, addMessage, formatDate
+- **Shared utilities** — `js/shared.js` provides escHtml, formatDate
 - **SSE streaming** — `js/api.js` provides stream() for real-time AI output
 
 ## Skill Routing
