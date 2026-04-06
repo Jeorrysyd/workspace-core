@@ -56,6 +56,21 @@ function generateId(prefix = 'vlt') {
   return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
+// Validate ID format to prevent path traversal (only allow alphanumeric, hyphens)
+function isValidId(id) {
+  return /^[a-zA-Z0-9\-]+$/.test(id);
+}
+
+// Sanitize value for .env file — prevent newline injection
+function sanitizeEnvValue(val) {
+  return String(val).replace(/[\r\n]/g, '').trim();
+}
+
+// Validate storedName — only allow safe filenames
+function isSafeFilename(name) {
+  return /^[a-zA-Z0-9\-]+\.[a-zA-Z0-9]+$/.test(name);
+}
+
 // ── Routes ───────────────────────────────────────────────────────────────────
 
 /** GET /overview — vault summary */
@@ -71,8 +86,7 @@ router.get('/overview', (req, res) => {
 
   res.json({
     folder: {
-      path: process.env.NOTES_DIR || null,
-      resolved: notesDir,
+      configured: !!(process.env.NOTES_DIR),
       count: notesCount
     },
     uploads: { count: uploads.length },
@@ -95,24 +109,25 @@ router.post('/config', (req, res) => {
     return res.status(400).json({ error: '路径不存在或不是文件夹' });
   }
 
-  // Write to .env
+  // Write to .env (sanitize to prevent newline injection)
+  const safeNotesDir = sanitizeEnvValue(notesDir);
   try {
     let envContent = '';
     if (fs.existsSync(ENV_PATH)) {
       envContent = fs.readFileSync(ENV_PATH, 'utf-8');
     }
     if (envContent.match(/^NOTES_DIR=.*/m)) {
-      envContent = envContent.replace(/^NOTES_DIR=.*/m, `NOTES_DIR=${notesDir}`);
+      envContent = envContent.replace(/^NOTES_DIR=.*/m, `NOTES_DIR=${safeNotesDir}`);
     } else {
-      envContent += `\nNOTES_DIR=${notesDir}`;
+      envContent += `\nNOTES_DIR=${safeNotesDir}`;
     }
     fs.writeFileSync(ENV_PATH, envContent, 'utf-8');
     // Update runtime env
-    process.env.NOTES_DIR = notesDir;
+    process.env.NOTES_DIR = safeNotesDir;
 
-    res.json({ success: true, resolved, message: '笔记文件夹已连接' });
+    res.json({ success: true, message: '笔记文件夹已连接' });
   } catch (err) {
-    res.status(500).json({ error: '保存配置失败: ' + err.message });
+    res.status(500).json({ error: '保存配置失败' });
   }
 });
 
@@ -198,6 +213,9 @@ router.get('/items', (req, res) => {
 
 /** GET /items/:id — get item text content */
 router.get('/items/:id', (req, res) => {
+  if (!isValidId(req.params.id)) {
+    return res.status(400).json({ error: '无效的 ID' });
+  }
   const textPath = path.join(TEXT_DIR, `${req.params.id}.txt`);
   if (!fs.existsSync(textPath)) {
     return res.status(404).json({ error: '素材不存在' });
@@ -209,6 +227,9 @@ router.get('/items/:id', (req, res) => {
 /** DELETE /items/:id — delete a vault item */
 router.delete('/items/:id', (req, res) => {
   const { id } = req.params;
+  if (!isValidId(id)) {
+    return res.status(400).json({ error: '无效的 ID' });
+  }
   const index = readIndex();
   const itemIdx = index.items.findIndex(i => i.id === id);
   if (itemIdx === -1) return res.status(404).json({ error: '素材不存在' });
@@ -219,7 +240,7 @@ router.delete('/items/:id', (req, res) => {
   const textPath = path.join(TEXT_DIR, `${id}.txt`);
   if (fs.existsSync(textPath)) fs.unlinkSync(textPath);
 
-  if (item.storedName) {
+  if (item.storedName && isSafeFilename(item.storedName)) {
     const filePath = path.join(FILES_DIR, item.storedName);
     if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
   }

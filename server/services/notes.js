@@ -141,9 +141,11 @@ function getRecentContext({ maxAge = 14, limit = 10, maxChars = 500 } = {}) {
 function getNoteContent(relativePath) {
   const dir = resolveNotesDir();
   if (!dir) return null;
-  const fullPath = path.join(dir, relativePath);
-  // Prevent path traversal
-  if (!fullPath.startsWith(dir)) return null;
+  // Reject paths with .. to prevent traversal
+  if (relativePath.includes('..')) return null;
+  const fullPath = path.resolve(path.join(dir, relativePath));
+  // Ensure resolved path is within notes dir
+  if (!fullPath.startsWith(path.resolve(dir) + path.sep) && fullPath !== path.resolve(dir)) return null;
   try {
     return fs.readFileSync(fullPath, 'utf-8');
   } catch {
@@ -176,10 +178,10 @@ function saveNote({ title, content, subdir = 'insights' }) {
     .slice(0, 50)
     .replace(/-$/, '');
   const filename = `${today}-${slug}.md`;
-  const fullPath = path.join(targetDir, filename);
+  const fullPath = path.resolve(path.join(targetDir, filename));
 
   // Prevent path traversal
-  if (!fullPath.startsWith(dir)) return null;
+  if (!fullPath.startsWith(path.resolve(dir) + path.sep) && fullPath !== path.resolve(dir)) return null;
 
   const md = `# ${title}\n\n${content}`;
   fs.writeFileSync(fullPath, md, 'utf-8');

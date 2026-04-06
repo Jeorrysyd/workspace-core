@@ -19,7 +19,7 @@
 ## 快速开始
 
 ```bash
-git clone https://github.com/jeorrysyd/workspace-core.git
+git clone https://github.com/your-username/workspace-core.git
 cd workspace-core
 npm install
 cp .env.example .env
@@ -29,7 +29,7 @@ cp .env.example .env
 
 ```env
 AI_PROVIDER=anthropic-api
-ANTHROPIC_API_KEY=sk-ant-你的key
+ANTHROPIC_API_KEY=你的key
 NOTES_DIR=~/你的笔记文件夹    # Obsidian / Logseq / 任何 Markdown 文件夹
 ```
 
