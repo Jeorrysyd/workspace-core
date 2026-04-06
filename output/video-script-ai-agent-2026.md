@@ -1,137 +1,97 @@
 # 口播稿：Agent 落地的真实瓶颈是人，不是模型
 
-> 格式：短视频口播稿（3-4分钟）
+> 格式：短视频口播稿（2分钟）
 > 生成日期：2026-04-06
-> 信息源：外部 feed 抓取 + 一手实操经验
-> 版本：v4 — 2分钟精简版（7D 审计后精修）
+> 目标受众：企业主、产品设计者、AI 从业者
+> 信息源：Aaron Levie (Box CEO) + Marc Andreessen (a16z)
+> 版本：v5 — 以 Levie 洞察为主线，企业/产品设计视角
 
 ---
 
 ## 角度卡片
 
-### Hook（3 个候选）
-1. [反常识型] — "所有人都在讨论哪个模型更强，但 Agent 落地最大的瓶颈，跟模型一点关系都没有。"
-2. [场景代入型] — "你同时开了五个 Agent 在帮你干活，然后你发现——你审不过来了。"
-3. [结果先行型] — "我让 AI 拥有自己的工作台，它写日记、做总结、自己去市场上找研究报告给我——我根本不看它在里面搞什么。"
+### Hook
+[反常识型] — "大家都在卷模型能力，但 Levie 指出了一个几乎没人在聊的结构性问题。"
 
 ### 立场
-Agent 的有效性上限，被人类的认知带宽锁死了。解法不是让 Agent 更自主或更听话，而是重新设计人和 Agent 的协作关系——从"老板盯员工"变成"各自独立、只对齐灵魂"。
+人类认知带宽才是 agent 规模化的真正瓶颈。Agent 产品的核心设计目标不应该是提高自主度，而是降低人类的监管认知成本。
 
-立场检验：删除测试 ✅ | 替换测试 ✅（需要一手协作经验才能写） | 反对测试 ✅（大量人仍在追求"全自动"或"完全控制"）
-
-### 论据（6 个）
-1. [S] 一手经验：用共享文件系统 + Prompt 规则让多个 AI Agent 读写同一套"记忆"，划分三个区（人类只读区 / AI 自治工作台 / 共用项目区），人只验收结果不盯过程 — 个人实操
-2. [S] 一手经验：设立三条红线（花钱 / 不可逆操作 / 社死风险），其余全部下放决策权给 AI — 个人实操
-3. [B] Levie：公司存在管理层级不是因为效率最优，而是因为一个人只能持有有限上下文 — Box CEO / Every 播客
-4. [B] Andreessen：一人十亿美金的圣杯受限于人类介入的不可避免性 — a16z / Lenny's Podcast
-5. [B] NNGroup：AI 减少一阶工作量，但增加二阶元认知负担 — State of UX 2026
-6. [B] Smashing Magazine：Agent 输出三要素——置信度、溯源、可逆性 — 2026.02
-
-### 骨架（7 步）
-1. 抛出反常识判断：瓶颈不是模型（Hook）
-2. 用管理层级类比揭示本质：人的上下文容量有限（Levie）
-3. 展示大多数人的做法为什么失败（盯过程 = 元认知负担爆炸）
-4. 亮出自己的解法：三区架构 + 三条红线 + 只验收不盯过程（一手案例）
-5. 拔高到方法论：从"老板-员工"到"各自独立的伙伴"（协作哲学）
-6. 回应"工作会消失"的论调：人的角色在变化而非消失
-7. 一句话收束：金句
-
-### 风险
-- 反对意见："你的方法只适合个人，企业不能这么放权" → 应对：Levie 的 Box 内部也在做类似的事——重构工作流让人专注判断而非执行
-- 最弱论据：Andreessen 部分是间接引用 → 补强：已有两个 S 级一手论据兜底
+### 骨架（6 步）
+1. 抛出问题：Agent 产品大量失败，原因不在模型（Hook）
+2. 引入 Levie 的核心洞察：管理层级的本质是认知带宽有限
+3. 类比到 Agent：输出质量被人的上下文、权限、注意力锁死
+4. 推到产品设计：失败的根因是"认知接口"没设计好
+5. 给出判断：核心设计目标应该是降低监管认知成本
+6. 收束：Levie 对"工作消失论"的反驳——角色在变，不会消失
 
 ---
 
 ## 口播稿正文
 
-所有人都在讨论哪个模型更强——GPT-5、Claude Opus、DeepSeek-V4。
+大家都在卷模型能力——更大的参数、更长的上下文、更强的推理。
 
-但 Agent 落地最大的瓶颈，跟模型一点关系都没有。
+但 Box 的 CEO Aaron Levie 指出了一个几乎没人在认真讨论的结构性问题：
 
-瓶颈是人。
+Agent 规模化的真正瓶颈，不是模型。是人。
 
-大多数人用 Agent 的方式，跟盯实习生一样——每一步都要过目、每个产出都要审批。用下来你会发现，Agent 越多你越累。
+他的逻辑链很清晰。公司之所以存在管理层级，不是因为这个结构效率最优，而是因为一个人只能持有有限的上下文。装不下的部分，你必须委托出去，事情才能往前推。
 
-我之前也是这样。后来想通了：问题不在 Agent，在我。
+Agent 目前没有摆脱这个约束。它的输出质量，高度依赖三件事：人给它的上下文质量，赋予它的工具权限，以及人能维持多久的监督注意力。
 
-我现在把工作区分三个区。第一个区是我的资料——笔记、灵感、一手素材，AI 只读不改。第二个区是 AI 自己的工作台。说实话，我根本不看它每天在里面搞什么。它写日记、做总结、自己去市场上找研究报告给我，只要最终产出让我满意就行。第三个区是我们共用的项目文件夹。
+模型可以越来越强，但人的注意力不会跟着翻倍。这才是真正的天花板。
 
-不管用 Claude Code 还是 Cursor，它们共享同一套规则和记忆。不同工具只是不同的壳。
+这个洞察对产品设计有非常直接的意义。
 
-决策权我只画三条红线：花钱的、不可逆的、可能社死的——必须我拍板。其他所有事，AI 自己定，异步汇报就行。
+当下大量 agent 产品在失败。不是因为模型不够聪明，而是因为没有为"人机协作的认知接口"设计好流程。用户不知道什么时候该介入，介入什么，怎么高效地验收 agent 的工作。
 
-我只验收结果，不盯过程。
+换句话说，大部分 agent 产品把设计重心放在了"让 agent 更自主"上。但真正卡住规模化的，是人在监管 agent 时的认知成本太高了。
 
-转变之后体感完全不一样。不是 Agent 变强了，是我的负担降下来了。
+真正能规模化落地的 agent 产品，必须把"降低人类监管的认知成本"当成核心设计目标。
 
-Aaron Levie 说得对："这也是'工作会消失'论者错的原因。"Agent 还需要人给上下文、给权限、校准方向。人的角色在变，但不会消失。
+这意味着什么？意味着每一个 agent 的输出，都应该让人能快速判断：这个结果我能不能信、它是怎么得出的、如果错了我能不能撤回。而不是把一个黑盒结果扔给用户，让用户自己去猜。
 
-真正能跑通的不是全自动，是一种新关系——你管品味和判断，AI 管执行和迭代。
+Levie 最后说了一句话值得细品："这也是'工作会消失'论者错误的原因。"
 
-沙滩上的城堡，模型一迭代就可能碾平。但建城堡攒下的品味和直觉，永远留在你身上。
+他不是否认 agent 的能力。他是在指出一个结构性的事实：在 agent 还需要人类提供上下文、工具权限、方向校准的阶段，人的角色在变化，而不是消失。
 
-那就重来一遍呗。
+那些认为 agent 会自动化掉人的论点，低估了协作本身的复杂性。
+
+对做产品的人来说，这句话翻译过来就是：别急着追全自动。先把人和 agent 之间的协作界面设计好。
+
+这才是这一轮 agent 竞赛里，真正决定胜负的设计问题。
 
 ---
 
 ## 标签
 
-#AIAgent #人机协作 #产品设计 #AaronLevie #Andreessen #认知带宽 #Agent落地 #AI工作流
+#AIAgent #产品设计 #AaronLevie #认知带宽 #Agent落地 #UX设计 #人机协作 #企业AI
 
 ---
 
 ## 信息源
 
-- [Aaron Levie: AI Agents Need Context — Box Blog](https://blog.box.com/getting-real-how-box-executives-see-ai-changing-2026)
-- [Aaron Levie on Agents & Future of Work — Every Podcast](https://every.to/podcast/transcript-box-ceo-aaron-levie-on-why-ai-agents-won-t-take-your-job)
+- [Aaron Levie: How Box Executives See AI Changing in 2026 — Box Blog](https://blog.box.com/getting-real-how-box-executives-see-ai-changing-2026)
+- [Box CEO Aaron Levie on Why AI Agents Won't Take Your Job — Every Podcast](https://every.to/podcast/transcript-box-ceo-aaron-levie-on-why-ai-agents-won-t-take-your-job)
 - [Aaron Levie on X: Execution Velocity Gap](https://x.com/levie/status/1967036306888044887)
-- [Marc Andreessen on AI Agent Breakthroughs — Lenny's Podcast](https://podcasts.apple.com/us/podcast/marc-andreessen-on-ai-winters-and-agent-breakthroughs/id842818711?i=1000759084711)
-- [Designing for Agentic AI: UX Patterns — Smashing Magazine](https://www.smashingmagazine.com/2026/02/designing-agentic-ai-practical-ux-patterns/)
+- [Marc Andreessen on AI Winters and Agent Breakthroughs — Lenny's Podcast](https://podcasts.apple.com/us/podcast/marc-andreessen-on-ai-winters-and-agent-breakthroughs/id842818711?i=1000759084711)
+- [Designing for Agentic AI: Practical UX Patterns — Smashing Magazine](https://www.smashingmagazine.com/2026/02/designing-agentic-ai-practical-ux-patterns/)
 - [State of UX 2026 — NNGroup](https://www.nngroup.com/articles/state-of-ux-2026/)
-- [Human Oversight Under Load — Medium](https://medium.com/@maxdolphin/human-oversight-under-load-in-the-age-of-ai-agents-e943b6e6720d)
 
 ---
 
 ## 自评
 
-📊 完成度自评：9/10 — v4 精简版约550字，预计1分40秒-2分钟。砍掉了 NNGroup 展开、外星人比喻段、Levie 两段引述合为一句，但保留了全部核心金句和三区架构完整展示。节奏更紧凑，适合短视频平台。
-
----
-
-## 版本演进
-
-| 版本 | 字数 | 时长 | 综合分 | 主要变化 |
-|------|------|------|--------|---------|
-| v1 | ~600 | 1.5min | 7/10 | 纯外部信息源，无一手素材 |
-| v2 | ~1200 | 3.5min | 8.3/10 | 融入三区架构 + 三条红线 |
-| v3 | ~1200 | 3.5min | 8.8/10 | 7D审计修掉AI味和书面腔 |
-| **v4** | **~550** | **1.5-2min** | **9/10** | 精简版，节奏紧凑 |
-
-**v4 砍掉了什么**：
-- NNGroup "一阶/二阶负担"展开段（核心意思已融入"Agent越多你越累"）
-- "外星人"比喻段（好但非必要，留给长版）
-- Levie 管理层级类比展开（压缩为一句带过）
-- "协作复杂性"学术收束（改为直接给关系定义）
-- 三区架构拆段改为连续叙述（更适合口播节奏）
-
-**v4 保留了什么（全部金句）**：
-1. "瓶颈是人"
-2. "跟盯实习生一样"
-3. "问题不在 Agent，在我"
-4. "我根本不看它每天在里面搞什么"
-5. "我只验收结果，不盯过程"
-6. "你管品味和判断，AI 管执行和迭代"
-7. "那就重来一遍呗"
+📊 完成度自评：9/10 — 以 Levie 洞察为单一主线，逻辑链清晰（管理层级类比→认知带宽约束→产品设计启示→工作消失论反驳），面向企业主和产品设计者，不散不飘。约600字，预计2分钟。唯一可提升点：如果能加一个具体的 agent 产品正面/反面案例会更有画面感。
 
 ---
 
 ## 球权交接
 
-1. **判断**：这是可以直接录的状态。550字，节奏紧，金句全保留，适合抖音/小红书/视频号。如果配合屏幕录制展示三区文件夹结构，视觉冲击力会更强。
+1. **判断**：比 v4 更聚焦、更有立场。不再是个人分享，而是一个有论据支撑的行业判断。适合在产品/创业/AI 圈子传播。
 
 2. **下一步选项**：
-   - 选项 A：直接录制。"瓶颈是人""我根本不看""那就重来一遍呗"三处停顿。前三句语速快，"瓶颈是人"停半拍
-   - 选项 B：生成10个标题候选 + 封面文案，优化点击率
-   - 选项 C：同时保存长版（v3, 3.5min）和短版（v4, 2min），不同平台分发
+   - 选项 A：直接录制
+   - 选项 B：跑 7D 审计，查 AI 味和口语化
+   - 选项 C：生成10个标题候选 + 封面文案
 
 3. 🏀 球在你手里 — 选一个方向
