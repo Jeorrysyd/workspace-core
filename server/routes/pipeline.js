@@ -42,6 +42,7 @@ const skills = {
 
 // ── Builders feed config ────────────────────────────────────────────────────
 const FEED_BASE_URL = process.env.FEED_BASE_URL || '';
+const FEED_DESCRIPTION = process.env.FEED_DESCRIPTION || 'AI 行业领袖的最新动态和播客内容';
 const BUILDERS_DIR = path.join(__dirname, '..', '..', 'data', 'builders');
 if (!fs.existsSync(BUILDERS_DIR)) fs.mkdirSync(BUILDERS_DIR, { recursive: true });
 

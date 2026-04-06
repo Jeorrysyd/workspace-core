@@ -1,7 +1,7 @@
 {
   "name": "workspace-core",
   "version": "1.0.0",
-  "description": "AI Content Workspace — configurable personal knowledge & content platform",
+  "description": "Prism — Every idea, refracted. AI-native content creation tool.",
   "main": "server/index.js",
   "engines": {
     "node": ">=18"

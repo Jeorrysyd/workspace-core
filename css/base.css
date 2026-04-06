@@ -1,37 +1,37 @@
 /* ============================================
-   AI Workspace — Design System (base.css)
-   Inspired by "One" workspace reference
+   Prism — Design System
+   Every idea, refracted.
    ============================================ */
 
 /* --- Fonts --- */
-@import url('https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300;0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;600;700&display=swap');
 
 /* --- CSS Variables --- */
 :root {
-  /* Colors */
-  --bg-primary: #fafaf7;
-  --bg-secondary: #f3f3ef;
-  --bg-tertiary: #eaeae5;
+  /* Colors — Spectral palette */
+  --bg-primary: #fafafa;
+  --bg-secondary: #f4f4f5;
+  --bg-tertiary: #e4e4e7;
   --bg-card: #ffffff;
-  --text-primary: #1a1a18;
-  --text-secondary: #6b6b65;
-  --text-tertiary: #9c9c95;
-  --text-placeholder: #bcbcb5;
-  --border: #e5e5e0;
-  --border-light: #f0f0eb;
-  --accent: #4a6741;
-  --accent-light: #e8f0e6;
-  --accent-hover: #3d5636;
-  --danger: #c45d4a;
-  --danger-light: #fef0ed;
-  --warning: #c49a4a;
-  --warning-light: #fef8ed;
-  --success: #4a8c5e;
-  --success-light: #edf8f0;
+  --text-primary: #18181b;
+  --text-secondary: #71717a;
+  --text-tertiary: #a1a1aa;
+  --text-placeholder: #d4d4d8;
+  --border: #e4e4e7;
+  --border-light: #f4f4f5;
+  --accent: #6366f1;
+  --accent-light: #eef2ff;
+  --accent-hover: #4f46e5;
+  --danger: #ef4444;
+  --danger-light: #fef2f2;
+  --warning: #f59e0b;
+  --warning-light: #fffbeb;
+  --success: #10b981;
+  --success-light: #ecfdf5;
 
   /* Typography */
-  --font-heading: 'Newsreader', 'Georgia', serif;
-  --font-body: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-heading: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: 'Noto Sans SC', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'SF Mono', 'Menlo', 'Monaco', monospace;
 
   /* Font sizes — 7 levels */
@@ -62,10 +62,10 @@
   --shadow-md: 0 4px 12px rgba(0,0,0,0.06);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.08);
 
-  /* Transitions */
-  --transition-fast: 150ms ease;
-  --transition-base: 250ms ease;
-  --transition-slow: 400ms ease;
+  /* Transitions — spring-physics curves */
+  --transition-fast: 150ms cubic-bezier(0.32, 0.72, 0, 1);
+  --transition-base: 250ms cubic-bezier(0.32, 0.72, 0, 1);
+  --transition-slow: 500ms cubic-bezier(0.32, 0.72, 0, 1);
 
   /* Layout */
   --statusbar-height: 36px;
@@ -139,9 +139,9 @@ a:hover {
 .topbar-title {
   font-size: var(--text-base);
   font-family: var(--font-heading);
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-primary);
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .topbar-right {
@@ -953,6 +953,54 @@ a.topic-source:hover {
   content: '✓ ';
 }
 
+/* ── Angle Cards ── */
+.angle-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-sm);
+}
+.angle-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+.angle-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.angle-card.picked {
+  border-color: var(--accent);
+  background: var(--bg-secondary);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.angle-card-label {
+  font-weight: 600;
+  font-size: var(--text-base);
+  color: var(--text-primary);
+}
+.angle-card-stance {
+  line-height: 1.5;
+  color: var(--text-primary);
+}
+.angle-card-hook {
+  line-height: 1.4;
+  font-style: italic;
+}
+.angle-card-pick {
+  margin-top: auto;
+  padding-top: var(--space-xs);
+  color: var(--accent);
+  font-weight: 500;
+}
+.angle-card.picked .angle-card-pick::before { content: '✓ '; }
+.angle-card.picked .angle-card-pick { color: var(--text-secondary); }
+
 .step-section {
   display: flex;
   flex-direction: column;
@@ -1014,6 +1062,29 @@ a.topic-source:hover {
   gap: var(--space-xs);
 }
 
+/* Submode tabs (近期笔记 / 深层暗流) */
+.submode-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+}
+.submode-tab {
+  padding: var(--space-xs) var(--space-sm);
+  font-size: var(--text-sm);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+.submode-tab:hover { color: var(--text-primary); }
+.submode-tab.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 500;
+}
+
 .time-range-group {
   display: flex;
   gap: var(--space-xs);
@@ -1067,13 +1138,13 @@ a.topic-source:hover {
 .output-area {
   margin-top: var(--space-sm);
   min-height: 80px;
-  max-height: 500px;
   overflow-y: auto;
   padding: var(--space-md);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-light);
   background: var(--bg-secondary);
   transition: all var(--transition-base);
+  position: relative;
 }
 
 /* Empty output: dashed border + placeholder */
@@ -1097,6 +1168,68 @@ a.topic-source:hover {
   background: var(--bg-secondary);
   border-style: solid;
 }
+
+/* Expand button */
+.output-expand-btn {
+  position: sticky;
+  top: 0;
+  float: right;
+  z-index: 2;
+  font-size: var(--text-xs);
+  opacity: 0.6;
+}
+.output-expand-btn:hover { opacity: 1; }
+
+/* Fullscreen expanded mode */
+.output-area.expanded {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  max-height: none;
+  z-index: 200;
+  margin: 0;
+  border-radius: 0;
+  padding: var(--space-xl) var(--space-xxl);
+  overflow-y: auto;
+  background: var(--bg-primary);
+  border: none;
+}
+.output-close-btn {
+  position: fixed;
+  top: var(--space-md);
+  right: var(--space-lg);
+  z-index: 201;
+  font-size: var(--text-sm);
+}
+
+/* Markdown rendered content */
+.md-rendered { line-height: 1.8; }
+.md-rendered h1 { font-size: 1.4em; font-weight: 600; margin: 1.2em 0 0.5em; font-family: var(--font-heading); }
+.md-rendered h2 { font-size: 1.2em; font-weight: 600; margin: 1em 0 0.4em; font-family: var(--font-heading); }
+.md-rendered h3 { font-size: 1.05em; font-weight: 600; margin: 0.8em 0 0.3em; font-family: var(--font-heading); }
+.md-rendered h4 { font-size: 1em; font-weight: 600; margin: 0.6em 0 0.2em; }
+.md-rendered p { margin: 0.5em 0; }
+.md-rendered ul, .md-rendered ol { padding-left: 1.5em; margin: 0.5em 0; }
+.md-rendered li { margin: 0.25em 0; }
+.md-rendered strong { font-weight: 600; color: var(--text-primary); }
+.md-rendered em { font-style: italic; color: var(--text-secondary); }
+.md-rendered blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: var(--space-sm);
+  margin: 0.5em 0;
+  color: var(--text-secondary);
+}
+.md-rendered code {
+  background: var(--bg-tertiary);
+  padding: 0.15em 0.4em;
+  border-radius: 3px;
+  font-size: 0.9em;
+}
+.md-rendered pre { background: var(--bg-tertiary); padding: var(--space-sm); border-radius: var(--radius-sm); overflow-x: auto; }
+.md-rendered pre code { background: none; padding: 0; }
+.md-rendered hr { border: none; border-top: 1px solid var(--border); margin: 1em 0; }
+.md-rendered table { border-collapse: collapse; width: 100%; margin: 0.5em 0; font-size: var(--text-sm); }
+.md-rendered th, .md-rendered td { border: 1px solid var(--border); padding: 0.4em 0.6em; text-align: left; }
+.md-rendered th { background: var(--bg-tertiary); font-weight: 600; }
 
 /* ── Project List ── */
 .project-list {
@@ -1133,7 +1266,21 @@ a.topic-source:hover {
 .project-meta {
   font-size: var(--text-xs);
   color: var(--text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
 }
+
+/* Progress dots */
+.progress-dots { display: flex; gap: 3px; align-items: center; }
+.progress-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: all var(--transition-fast);
+}
+.progress-dot.done { background: var(--accent); }
+.progress-dot.current { background: var(--accent); opacity: 0.5; }
 
 /* ── Empty State ── */
 .empty-state {
