@@ -1,8 +1,8 @@
-# AI Content Pipeline (workspace-core) — Claude Code Guide
+# Prism (workspace-core) — Claude Code Guide
 
 ## Overview
 
-A content production pipeline that transforms personal notes into publishable content.
+Prism — Every idea, refracted. An AI-native content creation tool that transforms personal notes into publishable content through a 3-step flow: Signal → Refract → Project.
 3-step flow: Discover → Angle → Create (Select merged into Discover, Polish merged into Create).
 All personalization via `.env` — zero hardcoded values.
 
