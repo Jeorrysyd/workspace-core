@@ -13,7 +13,7 @@ const vaultRoutes = require('./routes/vault');
 
 const app = express();
 const PORT = process.env.PORT || 3456;
-const APP_NAME = process.env.APP_NAME || 'AI Content Pipeline';
+const APP_NAME = process.env.APP_NAME || 'Prism';
 const ENV_PATH = path.join(__dirname, '..', '.env');
 
 // Middleware
@@ -35,12 +35,13 @@ app.use('/api/vault', vaultRoutes);
 // Config endpoint (includes AI readiness)
 app.get('/api/config', (req, res) => {
   res.json({
-    appName: process.env.APP_NAME || 'AI Content Pipeline',
+    appName: process.env.APP_NAME || 'Prism',
     ownerName: process.env.OWNER_NAME || '用户',
     aiReady: aiProvider.aiReady,
     aiProvider: aiProvider.aiProvider,
     aiHint: aiProvider.aiHint,
-    notesDir: process.env.NOTES_DIR || null
+    notesDir: process.env.NOTES_DIR || null,
+    feedDescription: process.env.FEED_DESCRIPTION || null
   });
 });
 
