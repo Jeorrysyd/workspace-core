@@ -32,7 +32,7 @@ const skills = {
   analyze: loadSkill('analyze'),
   topics: loadSkill('topics'),
   draft: loadSkill('draft'),
-  select: loadSkill('select'),
+
   angle: loadSkill('angle'),
   challenge: loadSkill('challenge'),
   polish: loadSkill('polish'),
@@ -41,7 +41,7 @@ const skills = {
 };
 
 // ── Builders feed config ────────────────────────────────────────────────────
-const FEED_BASE_URL = process.env.FEED_BASE_URL || 'https://raw.githubusercontent.com/zarazhangrui/follow-builders/main';
+const FEED_BASE_URL = process.env.FEED_BASE_URL || '';
 const FEED_DESCRIPTION = process.env.FEED_DESCRIPTION || 'AI 行业领袖的最新动态和播客内容';
 const BUILDERS_DIR = path.join(__dirname, '..', '..', 'data', 'builders');
 if (!fs.existsSync(BUILDERS_DIR)) fs.mkdirSync(BUILDERS_DIR, { recursive: true });
@@ -59,7 +59,7 @@ const TOPIC_JSON_INSTRUCTION = `
   "feasibility": "一句话可行性判断：素材是否充足、是否有独特立场、风险如何",
   "direction": "建议的内容方向或切入角度",
   "sources": [{"name": "信息来源人名或媒体名", "quote": "关键原文片段（1-2句）", "url": "原文链接"}],
-  "format": "短视频|小红书|深度文章|thread"
+  "format": "短视频|短内容|深度文章|thread"
 }]
 \`\`\`
 说明：
@@ -131,6 +131,7 @@ async function fetchFeed(feedFile) {
       return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     }
   }
+  if (!FEED_BASE_URL) throw new Error('Feed not configured — set FEED_BASE_URL in .env');
   const url = `${FEED_BASE_URL}/${feedFile}`;
   const resp = await fetch(url);
   if (!resp.ok) throw new Error(`Failed to fetch ${feedFile}: ${resp.status}`);
@@ -332,32 +333,6 @@ ${soul ? `用户的个人画像：\n${soul}` : ''}${TOPIC_JSON_INSTRUCTION}`;
 });
 
 // ══════════════════════════════════════════════════════════════════════════════
-// STEP 2: SELECT — analyze feasibility of a topic
-// ══════════════════════════════════════════════════════════════════════════════
-
-router.post('/select', async (req, res) => {
-  const { topic, contentType, sources } = req.body;
-  if (!topic) return res.status(400).json({ error: '请输入选题' });
-
-  const soul = readSoulMd();
-  const personalBg = getPersonalBackground();
-  const type = contentType === 'social' ? '自媒体内容' : '科普/深度文章';
-
-  const systemPrompt = `${skills.select}\n\n${personalBg}
-
-${soul ? `用户的个人画像：\n${soul}` : ''}`;
-
-  let userMessage = `选题：${topic}\n内容类型：${type}`;
-  if (Array.isArray(sources) && sources.length > 0) {
-    userMessage += `\n\n相关素材来源：\n${sources.map(s =>
-      `- ${s.name || '未知'}: "${(s.quote || '').slice(0, 200)}"${s.url ? ` (${s.url})` : ''}`
-    ).join('\n')}`;
-  }
-  userMessage += '\n\n请分析这个选题的可行性。';
-  await claude.streamResponse(res, systemPrompt, userMessage, ['WebSearch']);
-});
-
-// ══════════════════════════════════════════════════════════════════════════════
 // STEP 3: ANGLE — design angle card + challenge + reference analysis
 // ══════════════════════════════════════════════════════════════════════════════
 
@@ -435,7 +410,7 @@ router.post('/create', async (req, res) => {
 
   const formatNames = {
     'short-video': '短视频口播稿',
-    'xiaohongshu': '小红书图文',
+    'short-form': '短内容图文',
     'article': '深度文章',
     'academic': '学术风格',
     'pitch': '商业方案/Pitch'

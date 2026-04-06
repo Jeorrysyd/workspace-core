@@ -337,11 +337,16 @@
 
         <div class="input-group">
           ${flowMode ? '' : `<input class="input" id="create-topic" value="${shared.escHtml(topic)}" placeholder="选题" />`}
-          <div class="create-controls" style="display:flex;gap:var(--space-sm);align-items:center;flex-wrap:wrap">
-            <label class="text-sm text-secondary">输出格式</label>
-            <select class="select" id="create-format-select" style="width:auto">
-              ${formats.map(([id, label]) => `<option value="${id}" ${selectedFormat === id ? 'selected' : ''}>${label}</option>`).join('')}
-            </select>
+          <div class="format-grid">
+            ${[
+              ['short-video', '📱 短视频口播稿'],
+              ['short-form', '📕 短内容图文'],
+              ['article', '📝 深度文章'],
+              ['academic', '🎓 学术风格'],
+              ['pitch', '💼 商业方案']
+            ].map(([id, label]) => `
+              <button class="format-btn ${selectedFormat === id ? 'active' : ''}" data-action="set-format" data-format="${id}">${label}</button>
+            `).join('')}
           </div>
           <textarea class="textarea" id="create-adjust" rows="2" placeholder="额外要求（可选）"></textarea>
           <button class="btn btn-primary btn-lg" data-action="run-create" style="width:100%">一键生成完整内容</button>
@@ -362,12 +367,12 @@
           <div style="padding:var(--space-sm) 0;display:flex;flex-direction:column;gap:var(--space-sm)">
             <div class="input-group" style="flex-direction:row;flex-wrap:wrap;gap:var(--space-sm);align-items:center">
               <button class="btn btn-ghost btn-sm" data-action="run-review">质量审计</button>
-              <button class="btn btn-ghost btn-sm" data-action="run-headline">生成标题候选</button>
-              <button class="btn btn-ghost btn-sm" data-action="run-adapt">适配其他平台</button>
+              <button class="btn btn-ghost btn-sm" data-action="run-headline">🏷️ 生成标题候选</button>
+              <button class="btn btn-ghost btn-sm" data-action="run-adapt">🔄 适配其他平台</button>
               <select class="select select-sm" id="adapt-target" style="width:auto">
-                <option value="xiaohongshu">→ 小红书</option>
+                <option value="short-form">→ 短内容图文</option>
                 <option value="short-video">→ 短视频口播稿</option>
-                <option value="article">→ 公众号文章</option>
+                <option value="article">→ 深度文章</option>
               </select>
             </div>
             <div class="output-area" id="polish-review-output">${hasPolish?.review ? `<div class="msg-text md-rendered">${typeof marked !== 'undefined' ? marked.parse(project.polish.review) : shared.escHtml(project.polish.review)}</div>` : ''}</div>
@@ -904,7 +909,7 @@
   function runAdapt() {
     const content = project.polish?.final || project.create?.content || '';
     if (!content) { app.setStatus('请先生成内容'); return; }
-    const toFormat = (view.querySelector('#adapt-target') || {}).value || 'xiaohongshu';
+    const toFormat = (view.querySelector('#adapt-target') || {}).value || 'short-form';
 
     streamToOutput('adapt-output', '/api/pipeline/adapt', {
       content, fromFormat: selectedFormat, toFormat
@@ -922,7 +927,7 @@
         title: project.title || project.select?.topic || '未命名',
         content,
         type: project.create?.format || 'article',
-        platform: selectedFormat === 'xiaohongshu' ? '小红书' : '通用'
+        platform: selectedFormat === 'short-form' ? '短内容' : '通用'
       });
       app.setStatus('草稿已保存');
     } catch (err) {

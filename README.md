@@ -19,7 +19,7 @@
 ## 快速开始
 
 ```bash
-git clone https://github.com/jeorrysyd/workspace-core.git
+git clone https://github.com/your-username/workspace-core.git
 cd workspace-core
 npm install
 cp .env.example .env
@@ -29,7 +29,7 @@ cp .env.example .env
 
 ```env
 AI_PROVIDER=anthropic-api
-ANTHROPIC_API_KEY=sk-ant-你的key
+ANTHROPIC_API_KEY=你的key
 NOTES_DIR=~/你的笔记文件夹    # Obsidian / Logseq / 任何 Markdown 文件夹
 ```
 
@@ -79,7 +79,7 @@ npm start
 | 格式 | 特点 |
 |------|------|
 | 短视频口播稿 | 60-90 秒，口语化，钩子→案例→立场→行动 |
-| 小红书图文 | 标题有钩子感，每段有金句，结尾带 tag |
+| 短内容图文 | 标题有钩子感，每段有金句，结尾带 tag |
 | 深度文章 | 说人话、有温度、有洞察，带结构标注 |
 | 学术风格 | 严谨论证，引用驱动 |
 | 商业方案 | 痛点→方案→证据→行动 |
@@ -93,7 +93,7 @@ npm start
 **扩展工具：**
 - **一键精修** — AI 扫描 AI 味、优化开头、强化金句、清理结尾
 - **标题生成** — 6 种公式（数字/反常识/结果/悬念/代入/对比），10 个候选 + Top 3 推荐
-- **跨平台适配** — 一篇内容一键改写为其他平台格式（文章↔小红书↔短视频↔Twitter）
+- **跨平台适配** — 一篇内容一键改写为其他平台格式（长文↔短内容↔短视频↔Twitter）
 
 ## 设计理念
 

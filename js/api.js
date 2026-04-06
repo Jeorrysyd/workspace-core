@@ -51,21 +51,6 @@ const api = {
     return res.json();
   },
 
-  async uploadMultiple(url, files, extraFields = {}) {
-    const form = new FormData();
-    for (const file of files) {
-      form.append('file', file);
-    }
-    for (const [k, v] of Object.entries(extraFields)) {
-      form.append(k, v);
-    }
-    const res = await fetch(this.base + url, {
-      method: 'POST',
-      body: form
-    });
-    if (!res.ok) throw new Error(`UPLOAD ${url}: ${res.status}`);
-    return res.json();
-  },
 
   /**
    * SSE streaming request

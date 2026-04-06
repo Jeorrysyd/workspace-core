@@ -40,10 +40,15 @@ app.get('/api/config', (req, res) => {
     aiReady: aiProvider.aiReady,
     aiProvider: aiProvider.aiProvider,
     aiHint: aiProvider.aiHint,
-    notesDir: process.env.NOTES_DIR || null,
+    notesDir: process.env.NOTES_DIR ? true : false,
     feedDescription: process.env.FEED_DESCRIPTION || null
   });
 });
+
+// Sanitize value for .env file — prevent newline injection
+function sanitizeEnvValue(val) {
+  return String(val).replace(/[\r\n]/g, '').trim();
+}
 
 // Setup endpoint — write AI config to .env
 app.post('/api/setup', (req, res) => {
@@ -52,9 +57,14 @@ app.post('/api/setup', (req, res) => {
   if (!provider || !['anthropic-api', 'claude-cli'].includes(provider)) {
     return res.status(400).json({ error: '无效的 provider' });
   }
-  if (provider === 'anthropic-api' && (!apiKey || !apiKey.startsWith('sk-'))) {
-    return res.status(400).json({ error: '请输入有效的 API Key（以 sk- 开头）' });
+  if (provider === 'anthropic-api') {
+    if (!apiKey || typeof apiKey !== 'string' || !apiKey.startsWith('sk-') || apiKey.length > 200) {
+      return res.status(400).json({ error: '请输入有效的 API Key（以 sk- 开头）' });
+    }
   }
+
+  const safeProvider = sanitizeEnvValue(provider);
+  const safeApiKey = apiKey ? sanitizeEnvValue(apiKey) : '';
 
   try {
     let envContent = '';
@@ -64,24 +74,24 @@ app.post('/api/setup', (req, res) => {
 
     // Update or append AI_PROVIDER
     if (envContent.match(/^AI_PROVIDER=.*/m)) {
-      envContent = envContent.replace(/^AI_PROVIDER=.*/m, `AI_PROVIDER=${provider}`);
+      envContent = envContent.replace(/^AI_PROVIDER=.*/m, `AI_PROVIDER=${safeProvider}`);
     } else {
-      envContent = `AI_PROVIDER=${provider}\n` + envContent;
+      envContent = `AI_PROVIDER=${safeProvider}\n` + envContent;
     }
 
     // Update or append ANTHROPIC_API_KEY
     if (provider === 'anthropic-api') {
       if (envContent.match(/^ANTHROPIC_API_KEY=.*/m)) {
-        envContent = envContent.replace(/^ANTHROPIC_API_KEY=.*/m, `ANTHROPIC_API_KEY=${apiKey}`);
+        envContent = envContent.replace(/^ANTHROPIC_API_KEY=.*/m, `ANTHROPIC_API_KEY=${safeApiKey}`);
       } else {
-        envContent = envContent.replace(/^AI_PROVIDER=.*/m, `AI_PROVIDER=${provider}\nANTHROPIC_API_KEY=${apiKey}`);
+        envContent = envContent.replace(/^AI_PROVIDER=.*/m, `AI_PROVIDER=${safeProvider}\nANTHROPIC_API_KEY=${safeApiKey}`);
       }
     }
 
     fs.writeFileSync(ENV_PATH, envContent, 'utf-8');
     res.json({ success: true, message: '配置已保存，请重启服务器' });
   } catch (err) {
-    res.status(500).json({ error: '写入配置失败: ' + err.message });
+    res.status(500).json({ error: '写入配置失败' });
   }
 });
 

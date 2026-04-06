@@ -8,8 +8,7 @@
   },
   "scripts": {
     "start": "node server/index.js",
-    "dev": "nodemon server/index.js --watch server/",
-    "sync-kb": "echo 'Script removed — see skills/'"
+    "dev": "nodemon server/index.js --watch server/"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
