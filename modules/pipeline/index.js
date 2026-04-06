@@ -1,18 +1,17 @@
 /**
- * Pipeline Module — Content Production Pipeline
- * 3 steps: Discover → Angle → Create
- * (Select merged into Discover, Polish merged into Create)
+ * Prism — Every idea, refracted.
+ * 3 steps: Signal → Refract → Project
  */
 (function () {
   const STEPS = [
-    { id: 'discover', label: '发现', icon: '🔍', desc: '从笔记和信息源中发现选题' },
-    { id: 'angle',    label: '角度', icon: '💎', desc: '设计角度卡片' },
-    { id: 'create',   label: '生产', icon: '✍️', desc: '生成内容 + 润色终稿' }
+    { id: 'discover', label: 'Signal', icon: '◇', desc: '捕捉信号，发现选题' },
+    { id: 'angle',    label: 'Refract', icon: '◈', desc: '折射角度，锤炼切面' },
+    { id: 'create',   label: 'Project', icon: '▣', desc: '投射成像，生成内容' }
   ];
 
   const CTA_LABELS = [
-    '💎 选好了，锤炼角度 →',
-    '✍️ 角度就绪，开始写 →'
+    'Refract →',
+    'Project →'
   ];
 
   let view = null;
@@ -75,7 +74,7 @@
     const data = project[fields[idx]];
     if (!data) return false;
     if (typeof data === 'string') return data.length > 0;
-    return !!(data.result || data.content || data.review || data.final);
+    return !!(data.selected || data.result || data.content || data.review || data.final);
   }
 
   function goToStep(idx) {
@@ -87,7 +86,6 @@
         if (!hasStepResult(i)) return;
       }
     }
-    selectedMode = null;
     currentStep = idx;
     // Map 3-step index back to storage: 0→1, 1→3, 2→4 (for backward compat)
     const storageMap = [1, 3, 4];
@@ -123,7 +121,7 @@
   function renderProjectList() {
     return `
       <div class="pipeline-header">
-        <h2>内容生产线</h2>
+        <h2>Projects</h2>
         <div style="display:flex;gap:var(--space-sm)">
           <button class="btn btn-ghost" data-action="toggle-vault">📁 素材库</button>
           <button class="btn btn-primary" data-action="new-project">新建项目</button>
@@ -164,7 +162,7 @@
         ${currentStep > 0 ? `<button class="btn btn-ghost" data-action="prev-step">← 上一步</button>` : '<span></span>'}
         <div>
           <button class="btn btn-danger" data-action="abort" style="display:none">停止生成</button>
-          ${currentStep < STEPS.length - 1 && hasStepResult(currentStep) ? `<button class="btn btn-primary" data-action="next-step">${CTA_LABELS[currentStep]}</button>` : ''}
+          ${currentStep > 0 && currentStep < STEPS.length - 1 && hasStepResult(currentStep) ? `<button class="btn btn-primary" data-action="next-step">${CTA_LABELS[currentStep]}</button>` : ''}
           <button class="btn btn-ghost" data-action="save-project">保存</button>
         </div>
       </div>
@@ -182,62 +180,67 @@
 
   // ── Step 1: Discover ──────────────────────────────────────────────────────
 
+  let selectedSubmode = 'recent'; // 'recent' = notes mode, 'patterns' = drift mode
+
   function renderDiscover() {
     const hasResult = project.discover;
     const pickedTopic = project.select?.topic || '';
+    const isNotesMode = selectedMode === 'notes' || selectedMode === 'drift';
     return `
       <div class="step-section">
-        <h3>🔍 发现选题</h3>
+        <h3>发现选题</h3>
         <p class="text-secondary text-sm">从笔记和信息源中发现选题，或直接输入你的想法</p>
 
         <div class="discover-modes">
-          <button class="btn ${selectedMode === 'notes' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="notes">📝 从笔记发现</button>
-          <details class="discover-more-modes" style="display:inline">
-            <summary class="btn btn-ghost" style="display:inline-flex;list-style:none;cursor:pointer">更多发现方式 ▾</summary>
-            <div style="display:flex;gap:var(--space-xs);margin-top:var(--space-xs)">
-              <button class="btn ${selectedMode === 'feed' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="feed">🌐 外部信息源</button>
-              <button class="btn ${selectedMode === 'drift' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="drift">💭 自由发散</button>
-              <button class="btn ${selectedMode === 'trace' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="trace">🔎 追踪主题</button>
-            </div>
-          </details>
+          <button class="btn ${isNotesMode ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="notes">从笔记发现</button>
+          <button class="btn ${selectedMode === 'feed' ? 'btn-primary' : 'btn-ghost'}" data-action="discover" data-mode="feed">外部信息源</button>
         </div>
 
-        <div class="discover-options" id="discover-options" style="display:${selectedMode === 'notes' ? '' : 'none'}">
-          <label class="text-sm text-secondary">时间范围</label>
-          <div class="time-range-group">
-            ${['24h', '3d', '7d', '14d', '30d'].map(r => `
-              <button class="btn btn-sm ${r === selectedRange ? 'btn-primary' : 'btn-ghost'}" data-action="set-range" data-range="${r}">${r}</button>
-            `).join('')}
+        <div class="discover-notes-panel" id="discover-notes-panel" style="display:${isNotesMode ? '' : 'none'}; margin-top:var(--space-sm)">
+          <div class="submode-tabs">
+            <button class="submode-tab ${selectedSubmode === 'recent' ? 'active' : ''}" data-action="set-submode" data-submode="recent">近期笔记</button>
+            <button class="submode-tab ${selectedSubmode === 'patterns' ? 'active' : ''}" data-action="set-submode" data-submode="patterns">深层暗流</button>
           </div>
+          ${selectedSubmode === 'recent' ? `
+            <div class="discover-options" style="margin-top:var(--space-sm)">
+              <label class="text-sm text-secondary">时间范围</label>
+              <div class="time-range-group">
+                ${['24h', '3d', '7d', '14d', '30d'].map(r => `
+                  <button class="btn btn-sm ${r === selectedRange ? 'btn-primary' : 'btn-ghost'}" data-action="set-range" data-range="${r}">${r}</button>
+                `).join('')}
+              </div>
+            </div>
+          ` : `
+            <p class="text-sm text-secondary" style="margin-top:var(--space-sm)">扫描近期笔记中反复出现但从未写成内容的暗流主题</p>
+          `}
           <div style="margin-top:var(--space-sm)">
-            <button class="btn btn-primary" data-action="start-discover">开始扫描</button>
+            <button class="btn btn-primary" data-action="start-discover">${selectedSubmode === 'recent' ? '开始扫描' : '开始探索'}</button>
           </div>
         </div>
 
         <div id="discover-feed-start" style="display:${selectedMode === 'feed' ? '' : 'none'}; margin-top:var(--space-sm)">
-          <p class="text-sm text-secondary">扫描 AI 行业领袖的最新动态，发现信息差选题</p>
+          <p class="text-sm text-secondary">扫描外部信息源，发现信息差选题</p>
           <button class="btn btn-primary" data-action="start-discover">开始发现</button>
         </div>
 
-        <div id="discover-drift-start" style="display:${selectedMode === 'drift' ? '' : 'none'}; margin-top:var(--space-sm)">
-          <p class="text-sm text-secondary">扫描近期笔记中反复出现但从未写成内容的暗流主题</p>
-          <button class="btn btn-primary" data-action="start-discover">开始探索</button>
-        </div>
-
-        <div class="discover-trace" id="discover-trace" style="display:${selectedMode === 'trace' ? '' : 'none'}">
-          <label class="text-sm text-secondary">追踪关键词</label>
-          <input class="input" id="trace-keyword" placeholder="输入要追踪的主题..." />
-          <button class="btn btn-primary" data-action="start-discover">开始追踪</button>
-        </div>
-
-        <div class="output-area" id="discover-output">${hasResult ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.discover)}</div>` : ''}</div>
+        <div class="output-area" id="discover-output">${hasResult ? `<div class="msg-text md-rendered">${typeof marked !== 'undefined' ? marked.parse(project.discover) : shared.escHtml(project.discover)}</div>` : ''}</div>
 
         <div class="manual-topic-section" style="margin-top:var(--space-md);padding-top:var(--space-md);border-top:1px solid var(--border)">
           <p class="text-sm text-secondary" style="margin-bottom:var(--space-xs)">或者直接输入选题：</p>
           <div class="input-row">
             <input class="input" id="manual-topic" value="${shared.escHtml(pickedTopic)}" placeholder="输入你想写的选题..." />
-            <button class="btn btn-primary" data-action="manual-pick-topic">确认选题</button>
+            <button class="btn btn-primary" data-action="manual-pick-topic">确认选题 →</button>
           </div>
+          <details class="discover-advanced" style="margin-top:var(--space-sm)">
+            <summary class="text-xs text-tertiary" style="cursor:pointer">高级：关键词追踪</summary>
+            <div style="padding:var(--space-sm) 0">
+              <p class="text-xs text-secondary" style="margin-bottom:var(--space-xs)">在历史笔记中追踪一个关键词的出现和演变</p>
+              <div class="input-row">
+                <input class="input input-sm" id="trace-keyword" placeholder="输入关键词..." />
+                <button class="btn btn-ghost btn-sm" data-action="start-trace">追踪</button>
+              </div>
+            </div>
+          </details>
         </div>
       </div>
     `;
@@ -272,15 +275,10 @@
           ${flowMode ? '' : `<input class="input" id="angle-topic" value="${shared.escHtml(topic)}" placeholder="选题" />`}
           <textarea class="textarea" id="angle-pov" rows="2" placeholder="你的核心观点（可选）">${shared.escHtml(project.angle?.myPOV || '')}</textarea>
           <div class="input-row">
-            <select class="select" id="angle-tier">
-              <option value="A">A 精炼</option>
-              <option value="B" selected>B 标准</option>
-              <option value="C">C 深度</option>
-              <option value="D">D 长文</option>
-            </select>
             <button class="btn btn-primary" data-action="run-angle">生成角度卡片</button>
-            <button class="btn btn-ghost" data-action="run-challenge">🗡 质疑角度</button>
+            <button class="btn btn-ghost" data-action="run-challenge">质疑角度</button>
           </div>
+          <input type="hidden" id="angle-tier" value="B" />
         </div>
 
         <details class="reference-section">
@@ -292,7 +290,7 @@
           </div>
         </details>
 
-        <div class="output-area" id="angle-output">${hasResult?.result ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.angle.result)}</div>` : ''}</div>
+        <div class="output-area" id="angle-output">${hasResult?.result ? `<div class="msg-text md-rendered">${typeof marked !== 'undefined' ? marked.parse(project.angle.result) : shared.escHtml(project.angle.result)}</div>` : ''}</div>
       </div>
     `;
   }
@@ -304,6 +302,14 @@
     const hasPolish = project.polish;
     const topic = project.select?.topic || '';
     const flowMode = project.angle?.result;
+    const selectedAngle = project.angle?.selected;
+    const formats = [
+      ['article', '深度文章'],
+      ['xiaohongshu', '小红书图文'],
+      ['short-video', '短视频口播稿'],
+      ['academic', '学术风格'],
+      ['pitch', '商业方案']
+    ];
     return `
       <div class="step-section">
         ${flowMode ? `
@@ -312,63 +318,63 @@
               <span class="text-sm text-tertiary">选题：${shared.escHtml(topic)}</span>
               <a href="#" class="text-link text-sm" data-action="go-step" data-step="1">修改角度</a>
             </div>
-            <details class="step-context-detail" style="margin:0">
-              <summary class="text-sm text-tertiary" style="padding:0">查看角度卡片</summary>
-              <div class="text-sm text-secondary" style="white-space:pre-wrap;max-height:200px;overflow-y:auto;padding:var(--space-xs) 0">${shared.escHtml((project.angle.result || '').slice(0, 300))}${(project.angle.result || '').length > 300 ? '...' : ''}</div>
-            </details>
+            ${selectedAngle ? `
+              <div class="text-sm" style="margin-top:var(--space-xs)">
+                <strong>${shared.escHtml(selectedAngle.label || '')}</strong>
+                <span class="text-secondary"> — ${shared.escHtml(selectedAngle.stance || '')}</span>
+              </div>
+            ` : `
+              <details class="step-context-detail" style="margin:0">
+                <summary class="text-sm text-tertiary" style="padding:0">查看角度卡片</summary>
+                <div class="text-sm text-secondary" style="white-space:pre-wrap;max-height:200px;overflow-y:auto;padding:var(--space-xs) 0">${shared.escHtml((project.angle.result || '').slice(0, 300))}${(project.angle.result || '').length > 300 ? '...' : ''}</div>
+              </details>
+            `}
           </div>
         ` : `
-          <h3>✍️ 内容生产</h3>
-          <p class="text-secondary text-sm">基于角度卡片，选择输出格式，生成内容</p>
+          <h3>内容生产</h3>
+          <p class="text-secondary text-sm">基于角度卡片，生成完整内容</p>
         `}
 
         <div class="input-group">
           ${flowMode ? '' : `<input class="input" id="create-topic" value="${shared.escHtml(topic)}" placeholder="选题" />`}
-          <div class="format-grid">
-            ${[
-              ['short-video', '📱 短视频口播稿'],
-              ['xiaohongshu', '📕 小红书图文'],
-              ['article', '📝 深度文章'],
-              ['academic', '🎓 学术风格'],
-              ['pitch', '💼 商业方案']
-            ].map(([id, label]) => `
-              <button class="format-btn ${selectedFormat === id ? 'active' : ''}" data-action="set-format" data-format="${id}">${label}</button>
-            `).join('')}
+          <div class="create-controls" style="display:flex;gap:var(--space-sm);align-items:center;flex-wrap:wrap">
+            <label class="text-sm text-secondary">输出格式</label>
+            <select class="select" id="create-format-select" style="width:auto">
+              ${formats.map(([id, label]) => `<option value="${id}" ${selectedFormat === id ? 'selected' : ''}>${label}</option>`).join('')}
+            </select>
           </div>
-          <textarea class="textarea" id="create-adjust" rows="2" placeholder="额外调整意见（可选）"></textarea>
-          <button class="btn btn-primary" data-action="run-create">生成内容</button>
+          <textarea class="textarea" id="create-adjust" rows="2" placeholder="额外要求（可选）"></textarea>
+          <button class="btn btn-primary btn-lg" data-action="run-create" style="width:100%">一键生成完整内容</button>
         </div>
 
-        <div class="output-area" id="create-output">${hasResult?.content ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.create.content)}</div>` : ''}</div>
+        <div class="output-area" id="create-output">${hasResult?.content ? `<div class="msg-text md-rendered">${typeof marked !== 'undefined' ? marked.parse(project.create.content) : shared.escHtml(project.create.content)}</div>` : ''}</div>
 
         ${hasResult?.content ? `
-        <div class="polish-section" style="margin-top:var(--space-lg);padding-top:var(--space-md);border-top:1px solid var(--border)">
-          <h4 style="font-family:var(--font-heading);font-size:var(--text-base);font-weight:500;margin-bottom:var(--space-sm)">润色与终稿</h4>
-          <div class="input-group" style="flex-direction:row;flex-wrap:wrap;gap:var(--space-sm)">
-            <button class="btn btn-primary" data-action="run-final">🔧 一键生成终稿</button>
-            <button class="btn btn-ghost" data-action="run-review">📊 质量审计（可选）</button>
-            <button class="btn btn-secondary" data-action="save-draft">💾 保存为草稿</button>
-          </div>
+        <div style="margin-top:var(--space-md);display:flex;gap:var(--space-sm);flex-wrap:wrap">
+          <button class="btn btn-primary" data-action="run-final">一键润色终稿</button>
+          <button class="btn btn-secondary" data-action="save-draft">保存为草稿</button>
+        </div>
 
-          <div class="output-area" id="polish-review-output">${hasPolish?.review ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.polish.review)}</div>` : ''}</div>
-          ${hasPolish?.review && hasPolish?.final ? '<hr style="margin:var(--space-md) 0">' : ''}
-          <div class="output-area" id="polish-final-output">${hasPolish?.final ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.polish.final)}</div>` : ''}</div>
+        <div class="output-area" id="polish-final-output">${hasPolish?.final ? `<div class="msg-text md-rendered">${typeof marked !== 'undefined' ? marked.parse(project.polish.final) : shared.escHtml(project.polish.final)}</div>` : ''}</div>
 
-          <div style="margin-top:var(--space-md);padding-top:var(--space-md);border-top:1px solid var(--border)">
-            <h4 style="font-family:var(--font-heading);font-size:var(--text-base);font-weight:500;margin-bottom:var(--space-sm)">扩展工具</h4>
+        <details style="margin-top:var(--space-md)">
+          <summary class="text-sm text-tertiary" style="cursor:pointer">更多工具：质量审计、重新生成标题、适配其他平台</summary>
+          <div style="padding:var(--space-sm) 0;display:flex;flex-direction:column;gap:var(--space-sm)">
             <div class="input-group" style="flex-direction:row;flex-wrap:wrap;gap:var(--space-sm);align-items:center">
-              <button class="btn btn-ghost" data-action="run-headline">🏷️ 生成标题候选</button>
-              <button class="btn btn-ghost" data-action="run-adapt">🔄 适配其他平台</button>
-              <select class="select" id="adapt-target" style="width:auto">
+              <button class="btn btn-ghost btn-sm" data-action="run-review">质量审计</button>
+              <button class="btn btn-ghost btn-sm" data-action="run-headline">生成标题候选</button>
+              <button class="btn btn-ghost btn-sm" data-action="run-adapt">适配其他平台</button>
+              <select class="select select-sm" id="adapt-target" style="width:auto">
                 <option value="xiaohongshu">→ 小红书</option>
                 <option value="short-video">→ 短视频口播稿</option>
                 <option value="article">→ 公众号文章</option>
               </select>
             </div>
-            <div class="output-area" id="headline-output">${project.create?.headlines ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.create.headlines)}</div>` : ''}</div>
-            <div class="output-area" id="adapt-output">${project.create?.adapted ? `<div class="msg-text" style="white-space:pre-wrap;line-height:1.8">${shared.escHtml(project.create.adapted)}</div>` : ''}</div>
+            <div class="output-area" id="polish-review-output">${hasPolish?.review ? `<div class="msg-text md-rendered">${typeof marked !== 'undefined' ? marked.parse(project.polish.review) : shared.escHtml(project.polish.review)}</div>` : ''}</div>
+            <div class="output-area" id="headline-output">${project.create?.headlines ? `<div class="msg-text md-rendered">${typeof marked !== 'undefined' ? marked.parse(project.create.headlines) : shared.escHtml(project.create.headlines)}</div>` : ''}</div>
+            <div class="output-area" id="adapt-output">${project.create?.adapted ? `<div class="msg-text md-rendered">${typeof marked !== 'undefined' ? marked.parse(project.create.adapted) : shared.escHtml(project.create.adapted)}</div>` : ''}</div>
           </div>
-        </div>
+        </details>
         ` : ''}
       </div>
     `;
@@ -378,7 +384,18 @@
 
   let selectedRange = '7d';
   let selectedFormat = 'article';
-  let selectedMode = null;
+  let selectedMode = 'notes';
+  let _saveTimer = null;
+  let _saving = false;
+  function debounceSave(delay = 1500) {
+    clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(async () => {
+      if (!project || _saving) return;
+      _saving = true;
+      await saveProject();
+      _saving = false;
+    }, delay);
+  }
 
   function attachEvents() {
     view.addEventListener('click', handleClick);
@@ -390,6 +407,11 @@
   }
 
   function handleChange(e) {
+    if (e.target.matches('#create-format-select')) {
+      selectedFormat = e.target.value;
+      if (project.create) project.create.format = selectedFormat;
+      return;
+    }
     if (e.target.matches('[data-action="vault-file-input"]') && e.target.files.length > 0) {
       handleVaultUpload(e.target.files[0]);
     }
@@ -398,6 +420,7 @@
   function handleInput(e) {
     if (e.target.matches('.pipeline-title-input') && project) {
       project.title = e.target.value;
+      debounceSave();
     }
   }
 
@@ -457,22 +480,35 @@
       return;
     }
     if (action === 'discover') {
+      if (streaming) return;
       const mode = btn.dataset.mode;
       selectedMode = mode;
-      // Mutually exclusive panels
-      const opts = view.querySelector('#discover-options');
+      const notesPanel = view.querySelector('#discover-notes-panel');
       const feedStart = view.querySelector('#discover-feed-start');
-      const driftStart = view.querySelector('#discover-drift-start');
-      const trace = view.querySelector('#discover-trace');
-      if (opts) opts.style.display = mode === 'notes' ? '' : 'none';
+      const isNotesMode = mode === 'notes' || mode === 'drift';
+      if (notesPanel) notesPanel.style.display = isNotesMode ? '' : 'none';
       if (feedStart) feedStart.style.display = mode === 'feed' ? '' : 'none';
-      if (driftStart) driftStart.style.display = mode === 'drift' ? '' : 'none';
-      if (trace) trace.style.display = mode === 'trace' ? '' : 'none';
-      // Highlight active mode button
       view.querySelectorAll('.discover-modes .btn').forEach(b => {
-        b.classList.toggle('btn-primary', b.dataset.mode === mode);
-        b.classList.toggle('btn-ghost', b.dataset.mode !== mode);
+        const bMode = b.dataset.mode;
+        const isActive = bMode === mode || (bMode === 'notes' && isNotesMode);
+        b.classList.toggle('btn-primary', isActive);
+        b.classList.toggle('btn-ghost', !isActive);
       });
+      return;
+    }
+    if (action === 'set-submode') {
+      selectedSubmode = btn.dataset.submode;
+      view.querySelectorAll('.submode-tab').forEach(t => {
+        t.classList.toggle('active', t.dataset.submode === selectedSubmode);
+      });
+      // Re-render discover to update submode UI
+      const stepContent = view.querySelector('#step-content');
+      if (stepContent) stepContent.innerHTML = renderDiscover();
+      return;
+    }
+    if (action === 'start-trace') {
+      selectedMode = 'trace';
+      runDiscover('trace');
       return;
     }
     if (action === 'start-discover') {
@@ -491,11 +527,13 @@
         project.select.feasibility = t.feasibility || '';
         project.select.sources = t.sources || [];
         project.select.format = t.format || '';
+        if (t.format) selectedFormat = t.format;
         // Highlight picked card
         view.querySelectorAll('.topic-card').forEach((c, i) => {
           c.classList.toggle('picked', i === idx);
         });
-        updateStepButtons();
+        saveProject();
+        goToStep(1); // Auto-advance to Angle
       }
       return;
     }
@@ -510,8 +548,8 @@
       project.select.summary = '';
       project.select.direction = '';
       project.select.feasibility = '';
-      updateStepButtons();
-      app.setStatus('选题已确认');
+      saveProject();
+      goToStep(1); // Auto-advance to Angle
       return;
     }
 
@@ -520,6 +558,21 @@
     if (action === 'run-challenge') { runChallenge(); return; }
     if (action === 'run-ref-analyze') { runReference('analyze'); return; }
     if (action === 'run-ref-extract') { runReference('extract'); return; }
+    if (action === 'pick-angle') {
+      const idx = parseInt(btn.dataset.idx);
+      const angles = project._angleOptions;
+      if (angles && angles[idx]) {
+        if (!project.angle) project.angle = {};
+        project.angle.selected = angles[idx];
+        if (angles[idx].format) selectedFormat = angles[idx].format;
+        view.querySelectorAll('.angle-card').forEach((c, i) => {
+          c.classList.toggle('picked', i === idx);
+        });
+        saveProject();
+        goToStep(2); // Auto-advance to Create
+      }
+      return;
+    }
 
     // Step 4: Create
     if (action === 'set-format') {
@@ -572,6 +625,11 @@
         abortFn = null;
         if (err) {
           textEl.textContent = fullText + '\n\n⚠️ 生成出错: ' + err.message;
+        } else {
+          // Render markdown after streaming completes
+          renderMarkdownOutput(textEl, fullText);
+          // Add expand button
+          addExpandButton(el);
         }
         if (onDone) onDone(fullText);
         updateStepButtons();
@@ -581,16 +639,52 @@
     );
   }
 
+  function renderMarkdownOutput(el, text) {
+    if (typeof marked !== 'undefined') {
+      // Strip JSON fence blocks before rendering (they get parsed separately)
+      const cleaned = text.replace(/```json:(topics|angles)\s*[\s\S]*?```/g, '');
+      try {
+        el.innerHTML = marked.parse(cleaned);
+        el.style.whiteSpace = '';
+        el.classList.add('md-rendered');
+      } catch { /* fallback to plain text */ }
+    }
+  }
+
+  function addExpandButton(el) {
+    if (!el || el.querySelector('.output-expand-btn')) return;
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-ghost btn-sm output-expand-btn';
+    btn.textContent = '⤢ 展开查看';
+    btn.onclick = (e) => { e.stopPropagation(); toggleOutputExpand(el); };
+    el.prepend(btn);
+  }
+
+  function toggleOutputExpand(el) {
+    const isExpanded = el.classList.toggle('expanded');
+    if (isExpanded) {
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'btn btn-ghost output-close-btn';
+      closeBtn.textContent = '✕ 收起';
+      closeBtn.onclick = (e) => { e.stopPropagation(); toggleOutputExpand(el); };
+      el.prepend(closeBtn);
+      document.body.style.overflow = 'hidden';
+    } else {
+      el.querySelector('.output-close-btn')?.remove();
+      document.body.style.overflow = '';
+    }
+  }
+
   function updateStepButtons() {
     const abortBtn = view.querySelector('[data-action="abort"]');
     if (abortBtn) abortBtn.style.display = streaming ? '' : 'none';
-    // Disable/enable AI action buttons during streaming
+    // Disable/enable AI action buttons and discover mode buttons during streaming
     view.querySelectorAll('[data-action]').forEach(btn => {
-      if (AI_ACTIONS.has(btn.dataset.action)) btn.disabled = streaming;
+      if (AI_ACTIONS.has(btn.dataset.action) || btn.dataset.action === 'discover') btn.disabled = streaming;
     });
-    // Show/hide "下一步" button based on step result
+    // Show/hide "下一步" button based on step result (skip step 0, auto-advances on topic pick)
     const nextBtn = view.querySelector('[data-action="next-step"]');
-    const shouldShowNext = currentStep < STEPS.length - 1 && hasStepResult(currentStep);
+    const shouldShowNext = currentStep > 0 && currentStep < STEPS.length - 1 && hasStepResult(currentStep);
     if (shouldShowNext && !nextBtn) {
       const saveBtn = view.querySelector('[data-action="save-project"]');
       if (saveBtn) {
@@ -606,7 +700,12 @@
   }
 
   function runDiscover(mode) {
-    const body = { mode, timeRange: selectedRange };
+    // Map submode to backend mode
+    let backendMode = mode;
+    if (mode === 'notes' && selectedSubmode === 'patterns') {
+      backendMode = 'drift';
+    }
+    const body = { mode: backendMode, timeRange: selectedRange };
     if (mode === 'trace') {
       body.keyword = (view.querySelector('#trace-keyword') || {}).value || '';
     }
@@ -694,7 +793,44 @@
     const selectInsights = feasibility ? `可行性：${feasibility}\n建议方向：${direction}` : '';
     streamToOutput('angle-output', '/api/pipeline/angle', { topic, myPOV, tier, direction, selectInsights }, (text) => {
       project.angle.result = text;
+      renderAngleCards(text);
     });
+  }
+
+  function renderAngleCards(text) {
+    const match = text.match(/```json:angles\s*([\s\S]*?)```/);
+    if (!match) return;
+    try {
+      const angles = JSON.parse(match[1].trim());
+      if (!Array.isArray(angles) || angles.length === 0) return;
+      const container = view.querySelector('#angle-output');
+      if (!container) return;
+
+      const cardsHtml = `
+        <div class="angle-cards-section">
+          <p class="text-sm text-secondary" style="margin: var(--space-md) 0 var(--space-sm)">选择一个角度方案：</p>
+          <div class="angle-cards-grid">
+            ${angles.map((a, i) => `
+              <div class="angle-card" data-action="pick-angle" data-idx="${i}">
+                <div class="angle-card-label">${shared.escHtml(a.label || '')}</div>
+                <div class="angle-card-stance text-sm">${shared.escHtml(a.stance || '')}</div>
+                <div class="angle-card-hook text-xs text-secondary">${shared.escHtml(a.hookType || '')}：${shared.escHtml(a.hook || '')}</div>
+                <div class="angle-card-meta" style="margin-top:var(--space-xs)">
+                  <span class="text-xs" style="color:var(--accent)">✓ ${shared.escHtml(a.strength || '')}</span>
+                </div>
+                <div class="angle-card-meta">
+                  <span class="text-xs text-tertiary">⚠ ${shared.escHtml(a.risk || '')}</span>
+                </div>
+                ${a.format ? `<div class="text-xs text-tertiary" style="margin-top:var(--space-xs)">推荐格式：${shared.escHtml(a.format)}</div>` : ''}
+                <div class="angle-card-pick text-xs">选择此角度 →</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+      container.insertAdjacentHTML('beforeend', cardsHtml);
+      project._angleOptions = angles;
+    } catch { /* JSON parse failed — no cards shown */ }
   }
 
   function runChallenge() {
@@ -1005,7 +1141,7 @@
     return `
       <div class="setup-wizard">
         <div class="setup-header">
-          <h2>欢迎使用内容生产线</h2>
+          <h2>Welcome to Prism</h2>
           <p class="text-secondary">开始之前，需要连接一个 AI 服务</p>
         </div>
 
@@ -1136,17 +1272,28 @@
         `;
         return;
       }
-      listEl.innerHTML = projects.map(p => `
+      listEl.innerHTML = projects.map(p => {
+        // Map stored step to 3-step progress (1=discover, 2-3=angle, 4-5=create)
+        const stepMap = { 1: 0, 2: 0, 3: 1, 4: 2, 5: 2 };
+        const step = stepMap[p.currentStep] ?? 0;
+        const stepNames = ['Signal', 'Refract', 'Project'];
+        const dots = [0, 1, 2].map(i =>
+          `<span class="progress-dot ${i < step ? 'done' : ''} ${i === step ? 'current' : ''}"></span>`
+        ).join('');
+        return `
         <div class="project-card">
           <div class="project-info" data-action="load-project" data-id="${p.id}">
             <div class="project-title">${shared.escHtml(p.title)}</div>
             <div class="project-meta text-sm text-tertiary">
-              Step ${Math.min(p.currentStep, 3)}/3 · ${p.format || '未选格式'} · ${shared.formatDate(p.updatedAt)}
+              <span class="progress-dots">${dots}</span>
+              <span>${stepNames[step] || '发现'}</span>
+              <span>·</span>
+              <span>${shared.formatDate(p.updatedAt)}</span>
             </div>
           </div>
           <button class="btn btn-ghost btn-sm text-danger" data-action="delete-project" data-id="${p.id}">删除</button>
-        </div>
-      `).join('');
+        </div>`;
+      }).join('');
     } catch (err) {
       listEl.innerHTML = `<div class="text-danger text-sm" style="padding:var(--space-md)">加载失败: ${shared.escHtml(err.message)}</div>`;
     }
@@ -1164,8 +1311,8 @@
   // ── Module Registration ───────────────────────────────────────────────────
 
   app.register('pipeline', {
-    name: '生产线',
-    icon: '🔄',
+    name: 'Prism',
+    icon: '◈',
     section: 'Pipeline',
 
     init(v) {
