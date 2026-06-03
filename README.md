@@ -1,4 +1,4 @@
-# workspace-core
+# Prism内测版
 
 把个人笔记变成可发布内容的 AI 工作流。
 
